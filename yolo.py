@@ -13,13 +13,13 @@ from util import get_model_from_config
 from torch.nn.modules.utils import _pair
 
 
-class Conv2dLocal(nn.Module):
+class Local(nn.Module):
     """
     Construct a local layer for YOLO CNN.
     https://discuss.pytorch.org/t/locally-connected-layers/26979/2
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
-        super(Conv2dLocal, self).__init__()
+        super(Local, self).__init__()
         self.kernel_size = _pair(kernel_size)
         self.stride = _pair(stride)
         self.padding = _pair(padding)
@@ -60,13 +60,14 @@ class Detection(nn.Module):
     Construct a detection layer for YOLO CNN.
     Not finished yet
     """
-    def __init__(self, classes, coords, rescore, side, num, softmax, sqrt, jitter, object_s, noobject_s, class_s, coord_s):
+    def __init__(self, batch, classes, coords, rescore, side, num, softmax, sqrt, jitter, object_s, noobject_s, class_s, coord_s):
         super(Detection, self).__init__()
-        self.classes = classes
-        self.coords = coords
+        self.batch = batch
+        self.classes = classes # number of class
+        self.coords = coords # x, y, x, y
         self.rescore = rescore
-        self.side = _pair(side)
-        self.n = num
+        self.side = side # grid size
+        self.n = num # number of bounding box
         self.softmax = softmax
         self.sqrt = sqrt
         self.jitter = jitter
@@ -78,8 +79,12 @@ class Detection(nn.Module):
         self.inputs = side*side*((1 + coords) * num + classes)
         self.truths = side*side*(1 + coords + classes)
 
-    def forward(self, x):
-        pass
+    def forward(self, x, train_mode=True):
+        """
+        Make prediction and calculate loss
+        """
+        output = x.view(-1, self.side, self.side, (1 + self.coords) * self.num + self.classes)
+        return output
 
 
 def build_yolonet(module_params):
@@ -90,6 +95,21 @@ def build_yolonet(module_params):
     net_param = module_params.pop(0)
     channels = [net_param['channels']]
     modules = nn.ModuleList()
+
+    # hyperparameters:
+    batch = int(net_param['batch'])
+    subdivisions = int(net_param['subdivisions'])
+    height, width = int(net_param['height']), int(net_param['width'])
+    momentum = float(net_param['momentum'])
+    decay = float(net_param['decay'])
+    saturation = float(net_param['saturation'])
+    expsure = float(net_param['exposure'])
+    hue = float(net_param['hue'])
+    rate = float(net_param['learning_rate'])
+    policy = net_param['policy']
+    steps = [int(x) for x in net_param["steps"].split(",")]
+    scales = [float(x) for x in net_param["scales"].split(",")]
+    max_batches = int(net_param['max_batches'])
 
     for i, layer in enumerate(net_param):
         module = nn.Sequential()
@@ -106,7 +126,7 @@ def build_yolonet(module_params):
                                    kernel_size=kernel, stride=stride, padding=pad, bias=not bn)
             module.add_module("conv_layer_{}".format(i), conv_layer)
             if bn:
-                batch_norm = nn.BatchNorm2d(out_channel)
+                batch_norm = nn.BatchNorm2d(num_features=out_channel, momentum=momentum)
                 module.add_module("batch_norm_{}".format(i), batch_norm)
             if "activation" in layer and layer["activation"] == "leaky":
                 leaky = nn.LeakyReLU(negative_slope=0.1)
@@ -128,7 +148,7 @@ def build_yolonet(module_params):
             stride = int(layer['stride'])
             pad = (kernel - 1) // 2
 
-            local_layer = Conv2dLocal(in_channels=channels[-1], out_channels=out_channel,
+            local_layer = Local(in_channels=channels[-1], out_channels=out_channel,
                                    kernel_size=kernel, stride=stride, padding=pad)
             module.add_module("local_layer_{}".format(i), local_layer)
             if "activation" in layer and layer["activation"] == "leaky":
