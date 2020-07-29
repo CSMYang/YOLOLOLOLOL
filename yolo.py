@@ -17,28 +17,69 @@ class Conv2dLocal(nn.Module):
     """
     Construct a local layer for YOLO CNN.
     https://discuss.pytorch.org/t/locally-connected-layers/26979/2
-    Not finished yet
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
         super(Conv2dLocal, self).__init__()
         self.kernel_size = _pair(kernel_size)
         self.stride = _pair(stride)
         self.padding = _pair(padding)
-        self.weight = nn.Parameter(
-            torch.randn(1, out_channels, in_channels, output_size[0], output_size[1], kernel_size ** 2)
-        )
+
+        fold_num = (in_channels + 2 * padding - self.kernel_size) // self.stride + 1
+        self.weight = nn.Parameter(torch.randn(fold_num, kernel_size, out_channels))
 
     def forward(self, x):
-        _, c, h, w = x.size()
-        kh, kw = self.kernel_size
-        dh, dw = self.stride
-        x = x.unfold(2, kh, dh).unfold(3, kw, dw)
-        x = x.contiguous().view(*x.size()[:-2], -1)
-        # Sum in in_channel and kernel_size dims
-        out = (x.unsqueeze(1) * self.weight).sum([2, -1])
-        if self.bias is not None:
-            out += self.bias
-        return out
+        """
+        https://github.com/pytorch/pytorch/issues/499#issuecomment-503962218
+        """
+        x = F.pad(x, [self.padding] * 2, value=0)
+        x = x.unfold(-1, size=self.kernel_size, step=self.stride)
+        x = torch.matmul(x.unsqueeze(2), self.weight).squeeze(2)
+        return x
+    #     self.weight = nn.Parameter(
+    #         torch.randn(1, out_channels, in_channels, output_size[0], output_size[1], kernel_size ** 2)
+    #     )
+    #
+    # def forward(self, x):
+    #     """
+    #     not finished. implement it later.
+    #     """
+    #     _, c, h, w = x.size()
+    #     kh, kw = self.kernel_size
+    #     dh, dw = self.stride
+    #     x = x.unfold(2, kh, dh).unfold(3, kw, dw)
+    #     x = x.contiguous().view(*x.size()[:-2], -1)
+    #     # Sum in in_channel and kernel_size dims
+    #     out = (x.unsqueeze(1) * self.weight).sum([2, -1])
+    #     if self.bias is not None:
+    #         out += self.bias
+    #     return out
+
+
+class Detection(nn.Module):
+    """
+    Construct a detection layer for YOLO CNN.
+    Not finished yet
+    """
+    def __init__(self, classes, coords, rescore, side, num, softmax, sqrt, jitter, object_s, noobject_s, class_s, coord_s):
+        super(Detection, self).__init__()
+        self.classes = classes
+        self.coords = coords
+        self.rescore = rescore
+        self.side = _pair(side)
+        self.n = num
+        self.softmax = softmax
+        self.sqrt = sqrt
+        self.jitter = jitter
+        self.object_scale = object_s
+        self.noobject_scale = noobject_s
+        self.class_scale = class_s
+        self.coord_scale = coord_s
+
+        self.inputs = side*side*((1 + coords) * num + classes)
+        self.truths = side*side*(1 + coords + classes)
+
+    def forward(self, x):
+        pass
 
 
 def build_yolonet(module_params):
@@ -98,7 +139,7 @@ def build_yolonet(module_params):
 
         # dropout
         elif layer_type == "dropout":
-            prob = int(layer['probability'])
+            prob = float(layer['probability'])
             dropout = nn.Dropout(p=prob)
             module.add_module("dropout_{}".format(i), dropout)
 
@@ -110,9 +151,21 @@ def build_yolonet(module_params):
                 module.add_module("linear_{}".format(i), linear)
 
         # detection
-        elif layer_type == "detection":
-            # do it later
-            pass
+        elif layer_type == "detection": # like yolo layer in yolo-v3
+            classes = int(layer['classes'])
+            coords = int(layer['coords'])
+            rescore = int(layer['rescore'])
+            side = int(layer['side'])
+            num = int(layer['num'])
+            softmax = int(layer['softmax'])
+            sqrt = int(layer['sqrt'])
+            jitter = float(layer['jitter'])
+            object_s = int(layer['object_scale'])
+            noobject_s = float(layer['noobject_scale'])
+            class_s = int(layer['class_scale'])
+            coord_s = int(layer['coord_scale'])
+            detect = Detection()
+            module.add_module("detection", detect)
 
         # add module
         modules.append(module)
