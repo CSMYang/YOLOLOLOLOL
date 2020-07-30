@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+import numpy as np
 
 
 class LossGetter(nn.Module):
@@ -20,11 +21,6 @@ class LossGetter(nn.Module):
         self.C = C
         self.coord_scale = coord_scale
         self.noobject_scale = noobject_scale
-        if torch.cuda.is_available():
-            torch.set_default_tensor_type(torch.cuda.ByteTensor)
-            print('Running on GPU')
-        else:
-            print('Running on CPU')
 
     def iou_score(self, set_1, set_2):
         """
@@ -73,4 +69,36 @@ class LossGetter(nn.Module):
         :param true_labels: A set of N true results. Each true label has the same shape as above
         :return: A scalar of loss.
         """
-        pass
+        label_length = self.C + self.B * 5
+
+        # Initialize corresponding masks for selecting predictions
+        # with or without objects
+        num = prediction.size()[0]
+        c_mask = true_labels[:, :, :, 4] != 0
+        n_mask = true_labels[:, :, :, 4] == 0
+        c_mask = c_mask.unsqueeze(-1).expand_as(true_labels)
+        n_mask = n_mask.unsqueeze(-1).expand_as(true_labels)
+
+        box_index = 5 * self.B
+
+        pred_c = prediction[c_mask].view(-1, label_length)
+        pred_box = pred_c[:, : box_index].contigous().view(-1, 5)
+        pred_classes = pred_c[:, box_index:]
+
+        true_c = true_labels[c_mask].view(-1, label_length)
+        true_box = true_c[:, : box_index].contigous().view(-1, 5)
+        true_classes = true_c[:, box_index:]
+
+        # Compute the loss for predictions with no objects
+        n_pred = prediction[n_mask].view(-1, label_length)
+        n_true = true_labels[n_mask].view(-1, label_length)
+        initial_mask = np.zeros(n_pred.shape)
+        initial_n_conf_mask = torch.from_numpy(initial_mask).type(torch.ByteTensor).cuda()
+        for i in range(self.B):
+            initial_n_conf_mask[:, 4 + i * 5] = 1
+        predicted_confidence = n_pred[initial_n_conf_mask]
+        true_confidence = n_true[initial_n_conf_mask]
+        no_object_loss = F.mse_loss(predicted_confidence, true_confidence, reduction='sum')
+
+
+
