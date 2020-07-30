@@ -79,10 +79,11 @@ class Detection(nn.Module):
         self.inputs = side*side*((1 + coords) * num + classes)
         self.truths = side*side*(1 + coords + classes)
 
-    def forward(self, x, train_mode=True):
+    def forward(self, x, train_mode=False):
         """
         Make prediction and calculate loss
         """
+
         output = x.view(-1, self.side, self.side, (1 + self.coords) * self.num + self.classes)
         return output
 
@@ -200,10 +201,11 @@ class YoloNet(nn.Module):
         super(YoloNet, self).__init__()
         self.module_params = get_model_from_config(config_file)
         self.hyperparams, self.modules = build_yolonet(self.module_params)
-        self.header = None # do it later
+        self.header = torch.zeros(1, 5, dtype=torch.int32)
         self.seen = 0
+        self.img_size = int(self.hyperparams['height'])
 
-    def forward(self, x, cuda=True, train_mode=True):
+    def forward(self, x, train_mode=False):
         """
         The forward method for YoloNet.
         cuda: True if we use gpu for computation
@@ -215,6 +217,22 @@ class YoloNet(nn.Module):
             if type in ["convolutional", "maxpool", "local", "dropout", "connected"]:
                 output = module(output)
             elif type == "detection": # detection
-                # do it later
-                pass
+                output = module(output)
+                # loss
         return output
+
+    # def _initialize_weights(self):
+    # """
+    # https://github.com/motokimura/yolo_v1_pytorch/blob/master/darknet.py
+    # """
+    #     for m in self.modules():
+    #         if isinstance(m, nn.Conv2d):
+    #             nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='leaky_relu')
+    #             if m.bias is not None:
+    #                 nn.init.constant_(m.bias, 0)
+    #         elif isinstance(m, nn.BatchNorm2d):
+    #             nn.init.constant_(m.weight, 1)
+    #             nn.init.constant_(m.bias, 0)
+    #         elif isinstance(m, nn.Linear):
+    #             nn.init.normal_(m.weight, 0, 0.01)
+    #             nn.init.constant_(m.bias, 0)
