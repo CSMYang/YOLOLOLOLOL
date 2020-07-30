@@ -13,6 +13,7 @@ import numpy as np
 from util import get_model_from_config
 from torch.nn.modules.utils import _pair
 from loss import LossGetter
+import cv2
 
 
 class Local(nn.Module):
@@ -116,6 +117,7 @@ def build_yolonet(module_params):
     net_param = module_params.pop(0)
     channels = [net_param['channels']]
     modules = nn.ModuleList()
+    detect_param = module_params.pop(-1)
 
     # hyperparameters:
     batch = int(net_param['batch'])
@@ -131,6 +133,8 @@ def build_yolonet(module_params):
     steps = [int(x) for x in net_param["steps"].split(",")]
     scales = [float(x) for x in net_param["scales"].split(",")]
     max_batches = int(net_param['max_batches'])
+
+    # detection layer
 
     for i, layer in enumerate(net_param):
         module = nn.Sequential()
@@ -211,7 +215,7 @@ def build_yolonet(module_params):
 
         # add module
         modules.append(module)
-    return net_param, modules
+    return net_param, modules, detect_param
 
 
 class YoloNet(nn.Module):
@@ -221,7 +225,7 @@ class YoloNet(nn.Module):
     def __init__(self, config_file):
         super(YoloNet, self).__init__()
         self.module_params = get_model_from_config(config_file)
-        self.hyperparams, self.modules = build_yolonet(self.module_params)
+        self.hyperparams, self.modules, self.detection_param = build_yolonet(self.module_params)
         self.header = torch.zeros(1, 5, dtype=torch.int32)
         self.seen = 0
         self.img_size = int(self.hyperparams['height'])
