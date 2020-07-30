@@ -5,12 +5,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.autograd import Variable
 import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import numpy as np
 from util import get_model_from_config
 from torch.nn.modules.utils import _pair
+from loss import LossGetter
 
 
 class Local(nn.Module):
@@ -55,37 +57,55 @@ class Local(nn.Module):
     #     return out
 
 
-class Detection(nn.Module):
-    """
-    Construct a detection layer for YOLO CNN.
-    Not finished yet
-    """
-    def __init__(self, batch, classes, coords, rescore, side, num, softmax, sqrt, jitter, object_s, noobject_s, class_s, coord_s):
-        super(Detection, self).__init__()
-        self.batch = batch
-        self.classes = classes # number of class
-        self.coords = coords # x, y, x, y
-        self.rescore = rescore
-        self.side = side # grid size
-        self.n = num # number of bounding box
-        self.softmax = softmax
-        self.sqrt = sqrt
-        self.jitter = jitter
-        self.object_scale = object_s
-        self.noobject_scale = noobject_s
-        self.class_scale = class_s
-        self.coord_scale = coord_s
-
-        self.inputs = side*side*((1 + coords) * num + classes)
-        self.truths = side*side*(1 + coords + classes)
-
-    def forward(self, x, train_mode=False):
-        """
-        Make prediction and calculate loss
-        """
-
-        output = x.view(-1, self.side, self.side, (1 + self.coords) * self.num + self.classes)
-        return output
+# class Detection(nn.Module):
+#     """
+#     Construct a detection layer for YOLO CNN.
+#     Not finished yet
+#     """
+#     def __init__(self, batch, classes, coords, rescore, side, num, softmax, sqrt, jitter, object_s, noobject_s, class_s, coord_s):
+#         super(Detection, self).__init__()
+#         self.batch = batch
+#         self.classes = classes # number of class
+#         self.coords = coords # x, y, x, y
+#         self.rescore = rescore
+#         self.side = side # grid size
+#         self.n = num # number of bounding box
+#         self.softmax = softmax
+#         self.sqrt = sqrt
+#         self.jitter = jitter
+#         self.object_scale = object_s
+#         self.noobject_scale = noobject_s
+#         self.class_scale = class_s
+#         self.coord_scale = coord_s
+#
+#         self.inputs = side*side*((1 + coords) * num + classes)
+#         self.truths = side*side*(1 + coords + classes)
+#
+#     def forward(self, x, targets=None):
+#         """
+#         Make prediction and calculate loss
+#         """
+#         prediction = x.view(-1, self.side, self.side, (1 + self.coords) * self.n + self.classes)
+#         if targets is None:
+#             return prediction, None
+#         get_loss = LossGetter(S=self.side, C=self.classes, B=self.n, coord_scale=self.coord_scale,
+#                               noobject_scale=self.noobject_scale)
+#         total_loss = 0
+#         total_batch = 0
+#
+#         for i, (img, target) in enumerate(targets):
+#             batch = img.size(0)
+#             img, target = Variable(img), Variable(target)
+#             # If GPU available, use cuda
+#             if torch.cuda.is_available():
+#                 img, target = img.cuda(), target.cuda()
+#
+#             # Forward to compute loss.
+#             loss = get_loss(prediction, target)
+#             total_loss += (loss.item() * batch)
+#             total_batch += batch
+#
+#         return prediction, total_loss
 
 
 def build_yolonet(module_params):
@@ -171,22 +191,23 @@ def build_yolonet(module_params):
                 linear = nn.Linear(in_features=channels[-1], out_features=out_channel)
                 module.add_module("linear_{}".format(i), linear)
 
-        # detection
+        # # detection
         elif layer_type == "detection": # like yolo layer in yolo-v3
-            classes = int(layer['classes'])
-            coords = int(layer['coords'])
-            rescore = int(layer['rescore'])
-            side = int(layer['side'])
-            num = int(layer['num'])
-            softmax = int(layer['softmax'])
-            sqrt = int(layer['sqrt'])
-            jitter = float(layer['jitter'])
-            object_s = int(layer['object_scale'])
-            noobject_s = float(layer['noobject_scale'])
-            class_s = int(layer['class_scale'])
-            coord_s = int(layer['coord_scale'])
-            detect = Detection()
-            module.add_module("detection", detect)
+            continue
+            # classes = int(layer['classes'])
+            # coords = int(layer['coords'])
+            # rescore = int(layer['rescore'])
+            # side = int(layer['side'])
+            # num = int(layer['num'])
+            # softmax = int(layer['softmax'])
+            # sqrt = int(layer['sqrt'])
+            # jitter = float(layer['jitter'])
+            # object_s = int(layer['object_scale'])
+            # noobject_s = float(layer['noobject_scale'])
+            # class_s = int(layer['class_scale'])
+            # coord_s = int(layer['coord_scale'])
+            # detect = Detection()
+            # module.add_module("detection", detect)
 
         # add module
         modules.append(module)
@@ -217,8 +238,7 @@ class YoloNet(nn.Module):
             if type in ["convolutional", "maxpool", "local", "dropout", "connected"]:
                 output = module(output)
             elif type == "detection": # detection
-                output = module(output)
-                # loss
+                output = x.view(-1, self.side, self.side, (1 + self.coords) * self.n + self.classes)
         return output
 
     # def _initialize_weights(self):
