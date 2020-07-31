@@ -2,20 +2,16 @@
 Object Detection using the yolo model we implemented.
 """
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.autograd import Variable
-import torchvision
-import torchvision.transforms as transforms
-import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 from yolo import YoloNet
 
+# Global variables
 CONFID = 0.1
 PROB = 0.1
 NMS = 0.5
+IMG_WIDTH = 448
+IMG_HEIGHT = 448
 
 
 def get_classes(file_path):
@@ -28,7 +24,7 @@ def get_classes(file_path):
     return classes
 
 
-def preprocess_img(img, width=448, height=448):
+def preprocess_img(img, width=IMG_WIDTH, height=IMG_HEIGHT):
     """
     Reorgainze the image so that it could be passed to YoloNet
     """
@@ -40,7 +36,7 @@ def preprocess_img(img, width=448, height=448):
     return result
 
 
-def get_prediction_from_yolo(yolo_output, side, box_num, prob=0.1):
+def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
     """
     Get object detection result from the yolo output. Return a list of tuples as
     (class_label, score, confidence, box_coord1, box_coord2).
@@ -74,7 +70,7 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=0.1):
     return labels, confidences, scores, boxes
 
 
-def non_maximum_supression(scores, boxes, confidence=0.5, nms=0.4):
+def non_maximum_supression(scores, boxes, confidence=CONFID, nms=NMS):
     """
     Apply the non maximum supression to the yolo_output.
     Removes detections with lower object confidence score than confidence.
@@ -111,14 +107,54 @@ def non_maximum_supression(scores, boxes, confidence=0.5, nms=0.4):
     return torch.Tensor(ids)
 
 
-def detect(yolonet, img, class_num, width=448, height=448):
+def non_maximum_supression2(labels, confidences, scores, boxes, confidence=CONFID, nms=NMS):
+    """
+    Apply the non maximum supression to the yolo_output.
+    Removes detections with lower object confidence score than confidence.
+    :return: A list of tuples including class label, score, confidence, and two box coordinates.
+    """
+    x1, y1, x2, y2 = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
+    areas = (x2 - x1) * (y2 - y1)
+
+    sorted_boxes, boxes_indices = torch.sort(scores, 0, descending=True)
+    result = []
+    while boxes_indices.numel() > 0:
+        i = boxes_indices.item() if (boxes_indices.numel() == 1) else boxes_indices[0]
+        result.append(i)
+        if boxes_indices.numel() == 1:
+            break
+
+        intersect_x1 = x1[boxes_indices[1:]].clamp(min=x1[i])
+        intersect_y1 = y1[boxes_indices[1:]].clamp(min=y1[i])
+        intersect_x2 = x2[boxes_indices[1:]].clamp(max=x2[i])
+        intersect_y2 = y2[boxes_indices[1:]].clamp(max=y2[i])
+        intersect_w = (intersect_x2 - intersect_x1).clamp(min=0)
+        intersect_h = (intersect_y2 - intersect_y1).clamp(min=0)
+
+        intersection = intersect_w * intersect_h
+        union = areas[i] + areas[boxes_indices[1:]] - intersection
+        iou = intersection / union
+
+        # Remove boxes whose IoU is higher than the threshold.
+        good_ids = (iou <= nms).nonzero().squeeze()
+        if good_ids.numel() == 0:
+            break
+        boxes_indices = boxes_indices[good_ids + 1]
+
+    # Remove boxes whose confidence is lower than the threshold.
+    good_ids = (confidences[ids] >= confidence)
+
+    return labels[good_ids], confidences[good_ids], scores[good_ids], boxes[good_ids]
+
+
+def detect(yolonet, img, class_num, width=IMG_WIDTH, height=IMG_HEIGHT):
     """
     Detect objects from the given img.
     :param yolonet: The trained Yolo model.
     :param img: The image with the shape of (448, 448, 3)
     :param class_num: C The number of classes
     :param width: The width of the image for yolonet input
-    ;param height: The height of the image for yolonet input
+    :param height: The height of the image for yolonet input
     :return: A list of tuples including class label, score*confidence, and two box coordinates.
     """
     img_input = preprocess_img(img)
@@ -143,6 +179,34 @@ def detect(yolonet, img, class_num, width=448, height=448):
     detect = []
     for i in range(labels_nms.size(0)):
         label, prob, box = labels_nms[i], probs_nms[i], boxes_nms[i]
+
+        x1, y1, x2, y2 = width * box[0], height * box[1], width * box[2], height * box[3]
+        detect.append((label, prob, (x1, y1), (x2, y2)))
+    return detect
+
+
+def detect2(yolonet, img, classes, width=IMG_WIDTH, height=IMG_HEIGHT):
+    """
+    Detect objects from the given img.
+    :param yolonet: The trained Yolo model.
+    :param img: The image with the shape of (448, 448, 3)
+    :param classes: The class list for the object detection
+    :param width: The width of the image for yolonet input
+    :param height: The height of the image for yolonet input
+    :return: A list of tuples including class label, score*confidence, and two box coordinates.
+    """
+    img_input = preprocess_img(img)
+    box_num = int(yolonet.detection_param['num'])
+    side = int(yolonet.detection_param['side'])
+    predictions = get_prediction_from_yolo(yolonet(img_input).squeeze(0), side, box_num)
+    labels, confidences, scores, boxes = get_prediction_from_yolo(predictions, side, box_num)
+    # NMS
+    labels_nms, confidences_nms, scores_nms, boxes_nms = non_maximum_supression2(labels, confidences, scores, boxes)
+
+    # Reformat the result as a list of tuple.
+    detect = []
+    for i in range(labels_nms.size(0)):
+        label, prob, box = classes[labels_nms[i]], confidences_nms[i] * scores_nms[i], boxes_nms[i]
 
         x1, y1, x2, y2 = width * box[0], height * box[1], width * box[2], height * box[3]
         detect.append((label, prob, (x1, y1), (x2, y2)))
