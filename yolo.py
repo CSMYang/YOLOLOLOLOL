@@ -27,7 +27,7 @@ class Local(nn.Module):
         self.stride = _pair(stride)
         self.padding = _pair(padding)
 
-        fold_num = (in_channels + 2 * padding - self.kernel_size) // self.stride + 1
+        fold_num = (in_channels + 2 * padding - kernel_size) // stride + 1
         self.weight = nn.Parameter(torch.randn(fold_num, kernel_size, out_channels))
 
     def forward(self, x):
@@ -115,7 +115,7 @@ def build_yolonet(module_params):
     """
     # get the hyperparameters of the neural net.
     net_param = module_params.pop(0)
-    channels = [net_param['channels']]
+    channels = [int(net_param['channels'])]
     modules = nn.ModuleList()
     detect_param = module_params.pop(-1)
 
@@ -136,7 +136,7 @@ def build_yolonet(module_params):
 
     # detection layer
 
-    for i, layer in enumerate(net_param):
+    for i, layer in enumerate(module_params):
         module = nn.Sequential()
         layer_type = layer['type']
         # convolutional layer
@@ -144,8 +144,9 @@ def build_yolonet(module_params):
             kernel = int(layer['size'])
             out_channel = int(layer['filters'])
             stride = int(layer['stride'])
-            pad = (kernel - 1) // 2
+            pad = int(layer['pad'])
             bn = int(layer['batch_normalize']) if "batch_normalize" in layer else 0
+            # print(type(kernel), type(out_channel), type(stride), type(pad), type(bn))
 
             conv_layer = nn.Conv2d(in_channels=channels[-1], out_channels=out_channel,
                                    kernel_size=kernel, stride=stride, padding=pad, bias=not bn)
@@ -171,7 +172,7 @@ def build_yolonet(module_params):
             kernel = int(layer['size'])
             out_channel = int(layer['filters'])
             stride = int(layer['stride'])
-            pad = (kernel - 1) // 2
+            pad = int(layer['pad'])
 
             local_layer = Local(in_channels=channels[-1], out_channels=out_channel,
                                    kernel_size=kernel, stride=stride, padding=pad)
