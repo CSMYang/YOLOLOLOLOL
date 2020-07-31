@@ -18,6 +18,7 @@ class Detector:
             self.classes.append(line.strip())
         names.close()
         if cuda:
+            self.yolo.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
             self.yolo.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 
     def get_predictions(self, img):
@@ -91,6 +92,9 @@ class Detector:
                 if has_frame:
                     predictions = self.get_predictions(current_frame)
                     self.draw_boxes(current_frame, predictions, color=(0, 255, 0))
+                    t, _ = self.yolo.getPerfProfile()
+                    label = 'Current FPS is: %.2f' % (cv2.getTickFrequency() / t)
+                    cv2.putText(current_frame, label, (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
                     cv2.imshow("", current_frame)
                 else:
                     print('End of the video reached!')
