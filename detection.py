@@ -51,27 +51,42 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
     :return: A list of tuples including class label, score, confidence, and two box coordinates.
     """
 
-    labels, confidences, scores, boxes = torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), \
-                                         torch.Tensor(0, device=DEVICE), torch.Tensor(0, 4, device=DEVICE)
+    # labels, confidences, scores, boxes = torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), \
+    #                                      torch.Tensor(0, device=DEVICE), torch.Tensor(0, 4, device=DEVICE)
+    labels, confidences, scores, boxes = [], [], [], []
     for i in range(side):
         for j in range(side):
+            # print(j, i, box_num)
             score, label = torch.max(yolo_output[j, i, 5 * box_num:], 0)
+            # print(score, label)
 
             for b in range(box_num):
                 confidence = yolo_output[j, i, 5 * b + 4]
+                # print(confidence)
                 if float(confidence * score) < prob:
                     continue
 
                 box = yolo_output[j, i, 5 * b: 5 * b + 4]
                 xy_coord = box[:2] * float(side) + torch.Tensor([i, j], device=DEVICE) / float(side)
-                box_coords = torch.zeros(4, device=DEVICE)
+                box_coords = torch.Tensor(4, device=DEVICE)
                 box_coords[:2] = xy_coord - 0.5 * box[2:]
                 box_coords[2:] = xy_coord + 0.5 * box[2:]
 
-                labels = torch.cat((labels, label))
-                confidences = torch.cat((confidences, confidence))
-                scores = torch.cat((scores, score))
-                boxes = torch.cat((boxes, box_coords))
+                # labels = torch.cat((labels, torch.Tensor([label], device=DEVICE)))
+                # # print("labels:{}".format(labels))
+                # confidences = torch.cat((confidences, torch.Tensor([confidence], device=DEVICE)))
+                # scores = torch.cat((scores, torch.Tensor([score], device=DEVICE)))
+                # print(boxes.shape, box_coords.shape)
+                # boxes = torch.cat((boxes, box_coords))
+                labels.append(label)
+                confidences.append(confidence)
+                scores.append(score)
+                boxes.append(box_coords)
+    print("finish for loop (get_prediction)")
+
+    labels, confidences, scores, boxes = torch.stack(labels, 0), torch.stack(confidences, 0), \
+                                         torch.stack(scores, 0), torch.stack(boxes, 0)
+
     return labels, confidences, scores, boxes
 
 
@@ -124,15 +139,16 @@ def non_maximum_supression2(labels, confidences, scores, boxes, confidence=CONFI
     sorted_boxes, boxes_indices = torch.sort(scores, 0, descending=True)
     result = []
     while boxes_indices.numel() > 0:
-        i = boxes_indices.item() if (boxes_indices.numel() == 1) else boxes_indices[0]
+        i = boxes_indices.item() if (boxes_indices.numel() == 1) else boxes_indices[0].item()
+        print(x1[i].item())
         result.append(i)
         if boxes_indices.numel() == 1:
             break
 
-        intersect_x1 = x1[boxes_indices[1:]].clamp(min=x1[i])
-        intersect_y1 = y1[boxes_indices[1:]].clamp(min=y1[i])
-        intersect_x2 = x2[boxes_indices[1:]].clamp(max=x2[i])
-        intersect_y2 = y2[boxes_indices[1:]].clamp(max=y2[i])
+        intersect_x1 = x1[boxes_indices[1:]].clamp(min=x1[i].item())
+        intersect_y1 = y1[boxes_indices[1:]].clamp(min=y1[i].item())
+        intersect_x2 = x2[boxes_indices[1:]].clamp(max=x2[i].item())
+        intersect_y2 = y2[boxes_indices[1:]].clamp(max=y2[i].item())
         intersect_w = (intersect_x2 - intersect_x1).clamp(min=0)
         intersect_h = (intersect_y2 - intersect_y1).clamp(min=0)
 
@@ -147,7 +163,7 @@ def non_maximum_supression2(labels, confidences, scores, boxes, confidence=CONFI
         boxes_indices = boxes_indices[good_ids + 1]
 
     # Remove boxes whose confidence is lower than the threshold.
-    good_ids = (confidences[ids] >= confidence)
+    good_ids = (confidences[result] >= confidence)
 
     return labels[good_ids], confidences[good_ids], scores[good_ids], boxes[good_ids]
 
@@ -204,8 +220,8 @@ def detect2(yolonet, img, classes, width=IMG_WIDTH, height=IMG_HEIGHT):
     img_input = preprocess_img(img)
     box_num = int(yolonet.detection_param['num'])
     side = int(yolonet.detection_param['side'])
-    predictions = get_prediction_from_yolo(yolonet(img_input).squeeze(0), side, box_num)
-    labels, confidences, scores, boxes = get_prediction_from_yolo(predictions, side, box_num)
+    labels, confidences, scores, boxes = get_prediction_from_yolo(yolonet(img_input).squeeze(0), side, box_num)
+    # labels, confidences, scores, boxes = get_prediction_from_yolo(predictions, side, box_num)
     # NMS
     labels_nms, confidences_nms, scores_nms, boxes_nms = non_maximum_supression2(labels, confidences, scores, boxes)
 
