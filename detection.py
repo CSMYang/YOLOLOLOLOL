@@ -145,6 +145,7 @@ def non_maximum_supression2(labels, confidences, scores, boxes, confidence=CONFI
         if boxes_indices.numel() == 1:
             break
 
+        # https://pytorch.org/docs/master/generated/torch.clamp.html
         intersect_x1 = x1[boxes_indices[1:]].clamp(min=x1[i].item())
         intersect_y1 = y1[boxes_indices[1:]].clamp(min=y1[i].item())
         intersect_x2 = x2[boxes_indices[1:]].clamp(max=x2[i].item())
@@ -181,8 +182,8 @@ def detect(yolonet, img, class_num, width=IMG_WIDTH, height=IMG_HEIGHT):
     img_input = preprocess_img(img)
     box_num = int(yolonet.detection_param['num'])
     side = int(yolonet.detection_param['side'])
-    predictions = get_prediction_from_yolo(yolonet(img_input).squeeze(0), side, box_num)
-    labels, confidences, scores, boxes = get_prediction_from_yolo(predictions, side, box_num)
+    labels, confidences, scores, boxes = get_prediction_from_yolo(yolonet(img_input).squeeze(0), side, box_num)
+    # labels, confidences, scores, boxes = get_prediction_from_yolo(predictions, side, box_num)
     # NMS
     labels_nms, probs_nms, boxes_nms = torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), \
                                        torch.Tensor(0, 4, device=DEVICE)
