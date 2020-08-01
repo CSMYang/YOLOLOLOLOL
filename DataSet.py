@@ -67,11 +67,18 @@ class FormatedDataSet(Dataset):
         image_label = self.label[index]
 
         tensor_vector = self.Tensor_Vector(box_vector, image_label)
-        img = cv2.resize(img, (self.image_size, self.image_size))
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # img = cv2.resize(img, (self.image_size, self.image_size))
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         # do we need to normalize these?
-        img = torch.from_numpy(img)
-        return img, tensor_vector
+
+        new_img = cv2.resize(img, (448, 448),
+                             interpolation=cv2.INTER_LINEAR)
+        # DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        result = torch.zeros(3, 448, 448, device="cuda")
+        # print(transforms.ToTensor()(new_img).shape)
+        result[:, :, :] = transforms.ToTensor()(new_img)
+        # print(result.shape)
+        return result, tensor_vector
 
     def __len__(self):
         return self.len

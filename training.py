@@ -12,6 +12,8 @@ import math
 from datetime import datetime
 import xml.etree.ElementTree as ET
 import random
+import gc
+import warnings
 
 
 def source_label(folder, saving_folder, name):
@@ -79,7 +81,7 @@ if __name__ == "__main__":
     config_file = "cfg\yolov1.cfg"
     yolo = YoloNet(config_file)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    yolo.to(device)
+    yolo = yolo.to(device)
 
     Loss_function = LossGetter()
 
@@ -88,8 +90,8 @@ if __name__ == "__main__":
     base_lr = 0.01
     momentum = 0.9
     weight_decay = 5.0e-4
-    training_cycle = 100
-    batch_size = 64
+    training_cycle = 10
+    batch_size = 30
     S = 7
     C = 20
     B = 3
@@ -101,52 +103,75 @@ if __name__ == "__main__":
     Train_data_set = FormatedDataSet(True, "data\source_data\VOC2007\JPEGImages",
                                      "data\processed_data\VOC2007_training_label.txt", S, B, C)
     Train_loader = DataLoader(
-        Train_data_set, batch_size=batch_size, shuffle=True, num_workers=2)
+        Train_data_set, batch_size=batch_size, shuffle=True, num_workers=0)
 
-    print("hi")
     Validation_data_set = FormatedDataSet(True, "data\source_data\VOC2007\JPEGImages",
                                           "data\processed_data\VOC2007_validation_label.txt", S, B, C)
     Validation_loader = DataLoader(
-        Validation_data_set, batch_size=batch_size, shuffle=True, num_workers=2)
+        Validation_data_set, batch_size=batch_size, shuffle=True, num_workers=0)
 
+    class_list = []
+    class_file = open("data\processed_data\VOC2007_class_label.txt", "r")
+    for x in class_file:
+        class_list.append(x.strip())
+    warnings.filterwarnings("ignore", category=UserWarning)
+    print(class_list)
     for iteration in range(training_cycle):
-
         # trianing
+        print("iteration {} started".format(iteration))
+        yolo.train()
         total_training_loss = 0
         # https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
         for i, dataset in enumerate(Train_loader):
+            gc.collect()
+            torch.cuda.empty_cache()
             img = dataset[0]
             target = dataset[1]
-
+            img = img.cuda()
+            target = target.cuda()
             # might want to update learning rate, but for now just leave it to see if it works or not
             optimizer.zero_grad()
-            print(img.shape)
-            prediction = detect(yolo, img, 20)
-            print(prediction)
+            prediction = yolo.forward(img, True).cuda()
+            del img
             loss = Loss_function.forward(prediction, target)
+            del target
 
             optimizer.step()
-
-            total_training_loss += loss
-
-        print(total_training_loss/i)
+            total_training_loss += loss.item()
+            del loss, prediction
+            if i % 50 == 0:
+                # if device.type == 'cuda':
+                #     print(torch.cuda.get_device_name(0))
+                #     print('Memory Usage:')
+                #     print('Allocated:', round(
+                #         torch.cuda.memory_allocated(0)/1024**3, 1), 'GB')
+                #     print('Cached:   ', round(
+                #         torch.cuda.memory_cached(0)/1024**3, 1), 'GB')
+                print(total_training_loss/(i+1), i)
 
         # validation
         total_val_loss = 0
         best_loss = 0
         for i, dataset in enumerate(Validation_loader):
             img = dataset[0]
-            target = dataset[0]
-
+            target = dataset[1]
             yolo.eval()
+            img = img.cuda()
+            target = target.cuda()
+            with torch.no_grad():
+                prediction = yolo.forward(img).cuda()
 
-            prediction = yolo.forward(img)
+                val_loss = Loss_function.forward(prediction, target)
 
-            val_loss = Loss_function.forward(prediction, target)
-
-            total_val_loss += val_loss
-
+            total_val_loss += val_loss.item()
+            del img, target, prediction, val_loss
+            if i % 150 == 0:
+                print(total_val_loss/(i+1), "HI3")
         total_val_loss /= i
         if best_loss == 0 or total_val_loss <= best_loss:
             best_loss = total_val_loss
-            torch.save(yolo.state_dict(), "data\training_result")
+            best_iteration = iteration
+            torch.save(yolo.state_dict(),
+                       "data\\training_result\\best_state.pth")
+        print("iteration {} ended".format(iteration))
+    print(best_iteration)
