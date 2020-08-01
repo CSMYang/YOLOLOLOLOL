@@ -153,7 +153,8 @@ def build_yolonet(module_params):
             kernel = int(layer['size'])
             out_channel = int(layer['filters'])
             stride = int(layer['stride'])
-            pad = int(layer['pad'])
+            # pad = int(layer['pad'])
+            pad = (kernel - 1) // 2
             bn = int(layer['batch_normalize']) if "batch_normalize" in layer else 0
             # print(type(kernel), type(out_channel), type(stride), type(pad), type(bn))
 
@@ -186,7 +187,7 @@ def build_yolonet(module_params):
             # local_layer = Local(in_channels=channels[-1], out_channels=out_channel,
             #                        kernel_size=kernel, stride=stride, padding=pad)
             module.add_module("Flatten_{}".format(i), Flatten())
-            local_layer = nn.Linear(12*12*1024, 4096)
+            local_layer = nn.Linear(7 * 7 * 1024, 4096)
             module.add_module("local_layer_{}".format(i), local_layer)
             if "activation" in layer and layer["activation"] == "leaky":
                 leaky = nn.LeakyReLU(negative_slope=0.1)
@@ -260,7 +261,7 @@ class YoloNet(nn.Module):
         #     elif type == "detection": # detection
         #         output = x.view(-1, self.side, self.side, (1 + self.coords) * self.n + self.classes)
         # print(type(self.modules), type(self.hyperparams), type(self.detection_param))
-        # print(self.hyperparams)
+        print(self.m)
         for module in self.m:
             output = module(output)
         classes = int(self.detection_param['classes'])
