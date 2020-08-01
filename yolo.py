@@ -165,7 +165,7 @@ def build_yolonet(module_params):
                 batch_norm = nn.BatchNorm2d(num_features=out_channel, momentum=momentum)
                 module.add_module("batch_norm_{}".format(i), batch_norm)
             if "activation" in layer and layer["activation"] == "leaky":
-                leaky = nn.LeakyReLU(negative_slope=0.1)
+                leaky = nn.LeakyReLU(negative_slope=0.1, inplace=True)
                 module.add_module("leaky_relu_{}".format(i), leaky)
             # update channels
             channels.append(out_channel)
@@ -190,7 +190,7 @@ def build_yolonet(module_params):
             local_layer = nn.Linear(in_features=(7 * 7 * channels[-1]), out_features=out_channel)
             module.add_module("local_layer_{}".format(i), local_layer)
             if "activation" in layer and layer["activation"] == "leaky":
-                leaky = nn.LeakyReLU(negative_slope=0.1)
+                leaky = nn.LeakyReLU(negative_slope=0.1, inplace=True)
                 module.add_module("leaky_relu_{}".format(i), leaky)
             # update channels
             channels.append(out_channel)
@@ -198,7 +198,7 @@ def build_yolonet(module_params):
         # dropout
         elif layer_type == "dropout":
             prob = float(layer['probability'])
-            dropout = nn.Dropout(p=prob)
+            dropout = nn.Dropout(p=prob, inplace=True)
             module.add_module("dropout_{}".format(i), dropout)
 
         # connection layer
