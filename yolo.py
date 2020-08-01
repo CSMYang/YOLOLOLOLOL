@@ -23,9 +23,9 @@ class Local(nn.Module):
     """
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
         super(Local, self).__init__()
-        self.kernel_size = _pair(kernel_size)
-        self.stride = _pair(stride)
-        self.padding = _pair(padding)
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
 
         fold_num = (in_channels + 2 * padding - kernel_size) // stride + 1
         self.weight = nn.Parameter(torch.randn(fold_num, kernel_size, out_channels))
@@ -109,6 +109,14 @@ class Local(nn.Module):
 #         return prediction, total_loss
 
 
+# class Flatten(nn.Module):
+#     def __init__(self):
+#         super(Flatten, self).__init__()
+#
+#     def forward(self, x):
+#         return x.view(x.size(0), -1)
+
+
 def build_yolonet(module_params):
     """
     Construct a Yolo convolutional neural network based on the parameters from the module_params.
@@ -117,6 +125,7 @@ def build_yolonet(module_params):
     net_param = module_params.pop(0)
     channels = [int(net_param['channels'])]
     modules = nn.ModuleList()
+    # module = nn.Sequential()
     detect_param = module_params.pop(-1)
 
     # hyperparameters:
@@ -176,6 +185,8 @@ def build_yolonet(module_params):
 
             local_layer = Local(in_channels=channels[-1], out_channels=out_channel,
                                    kernel_size=kernel, stride=stride, padding=pad)
+            # module.add_module("Flatten_{}".format(i), Flatten())
+            # local_layer = nn.Linear(7 * 7 * 1024, 4096)
             module.add_module("local_layer_{}".format(i), local_layer)
             if "activation" in layer and layer["activation"] == "leaky":
                 leaky = nn.LeakyReLU(negative_slope=0.1)
@@ -216,7 +227,8 @@ def build_yolonet(module_params):
 
         # add module
         modules.append(module)
-    return net_param, modules, detect_param
+    print(type(modules))
+    return net_param, detect_param, modules
 
 
 class YoloNet(nn.Module):
@@ -226,7 +238,9 @@ class YoloNet(nn.Module):
     def __init__(self, config_file):
         super(YoloNet, self).__init__()
         self.module_params = get_model_from_config(config_file)
-        self.hyperparams, self.modules, self.detection_param = build_yolonet(self.module_params)
+        self.hyperparams, self.detection_param, self.m = build_yolonet(self.module_params)
+        print(type(self.m), type(self.hyperparams), type(self.detection_param))
+        # print(self.modules)
         self.header = torch.zeros(1, 5, dtype=torch.int32)
         self.seen = 0
         self.img_size = int(self.hyperparams['height'])
@@ -237,13 +251,18 @@ class YoloNet(nn.Module):
         cuda: True if we use gpu for computation
         train_mode: True if it is for training
         """
+        # print(x.shape)
         output = x
-        for params, module in zip(self.module_params[1:], self.modules):
-            type = params["type"]
-            if type in ["convolutional", "maxpool", "local", "dropout", "connected"]:
-                output = module(output)
-            elif type == "detection": # detection
-                output = x.view(-1, self.side, self.side, (1 + self.coords) * self.n + self.classes)
+        # for i, (params, module) in enumerate(zip(self.module_params[1:], self.modules)):
+        #     type = params["type"]
+        #     if type in ["convolutional", "maxpool", "local", "dropout", "connected"]:
+        #         output = module(output)
+        #     elif type == "detection": # detection
+        #         output = x.view(-1, self.side, self.side, (1 + self.coords) * self.n + self.classes)
+        # print(type(self.modules), type(self.hyperparams), type(self.detection_param))
+        for module in self.m:
+            output = module(output)
+        output = output.view(-1, self.side, self.side, (1 + self.coords) * self.n + self.classes)
         return output
 
     # def _initialize_weights(self):
