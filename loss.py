@@ -81,11 +81,11 @@ class LossGetter(nn.Module):
         box_index = 5 * self.B
 
         pred_c = prediction[c_mask].view(-1, label_length)
-        pred_box = pred_c[:, : box_index].contigous().view(-1, 5)
+        pred_box = pred_c[:, : box_index].contiguous().view(-1, 5)
         pred_classes = pred_c[:, box_index:]
 
         true_c = true_labels[c_mask].view(-1, label_length)
-        true_box = true_c[:, : box_index].contigous().view(-1, 5)
+        true_box = true_c[:, : box_index].contiguous().view(-1, 5)
         true_classes = true_c[:, box_index:]
 
         # Compute the loss for probabilities.
@@ -93,19 +93,25 @@ class LossGetter(nn.Module):
 
         # Compute the loss for predictions with objects
         ious = torch.zeros(true_box.size()).cuda()
-        responsibility_mask = torch.zeros(true_box.size()).type(torch.ByteTensor).cuda()
-        responsibility_mask_no_obj = torch.ones(true_box.size()).type(torch.ByteTensor).cuda()
-        for i in range(true_box.size(0), step=self.B):
+        responsibility_mask = torch.zeros(
+            true_box.size()).type(torch.ByteTensor).cuda()
+        responsibility_mask_no_obj = torch.ones(
+            true_box.size()).type(torch.ByteTensor).cuda()
+        for i in range(0, true_box.size(0), self.B):
             predicted_boxes = pred_box[i: i + self.B]
             pred_coordinates = torch.zeros((predicted_boxes.size()[0], 4),
                                            requires_grad=True).type(torch.FloatTensor).cuda()
-            pred_coordinates[:, :2] = predicted_boxes[:, :2] / self.S - predicted_boxes[:, 2:4] / 2
-            pred_coordinates[:, 2:4] = predicted_boxes[:, :2] / self.S + predicted_boxes[:, 2:4] / 2
+            pred_coordinates[:, :2] = predicted_boxes[:, :2] / \
+                self.S - predicted_boxes[:, 2:4] / 2
+            pred_coordinates[:, 2:4] = predicted_boxes[:,
+                                                       :2] / self.S + predicted_boxes[:, 2:4] / 2
             real_box = true_box[i].view(-1, 5)
             real_coordinate = torch.zeros((real_box.size()[0], 4),
                                           requires_grad=True).type(torch.FloatTensor).cuda()
-            real_coordinate[:, :2] = real_box[:, :2] / self.S - real_box[:, 2:4] / 2
-            real_coordinate[:, 2:4] = real_box[:, :2] / self.S + real_box[:, 2:4] / 2
+            real_coordinate[:, :2] = real_box[:, :2] / \
+                self.S - real_box[:, 2:4] / 2
+            real_coordinate[:, 2:4] = real_box[:, :2] / \
+                self.S + real_box[:, 2:4] / 2
             iou = self.iou_score(pred_coordinates, real_coordinate)
             best_score, best_index = iou.max(0)
             best_index = best_index.data.cuda()
@@ -117,21 +123,26 @@ class LossGetter(nn.Module):
         pred_resp = pred_box[responsibility_mask].view(-1, 5)
         true_resp = true_box[responsibility_mask].view(-1, 5)
         true_iou = ious[responsibility_mask].view(-1, 5)
-        coord_loss = F.mse_loss(pred_resp[:, :2], true_resp[:, :2], reduction='sum')
-        dimension_loss = F.mse_loss(torch.sqrt(pred_resp[:, :2]), torch.sqrt(true_resp[:, :2]), reduction='sum')
-        confidence_loss = F.mse_loss(pred_resp[:, 4], true_iou[:, 4], reduction='sum')
+        coord_loss = F.mse_loss(
+            pred_resp[:, :2], true_resp[:, :2], reduction='sum')
+        dimension_loss = F.mse_loss(torch.sqrt(
+            pred_resp[:, :2]), torch.sqrt(true_resp[:, :2]), reduction='sum')
+        confidence_loss = F.mse_loss(
+            pred_resp[:, 4], true_iou[:, 4], reduction='sum')
 
         # Compute the loss for predictions with no objects
         n_pred = prediction[n_mask].view(-1, label_length)
         n_true = true_labels[n_mask].view(-1, label_length)
-        initial_n_conf_mask = torch.zeros(n_pred.size()).type(torch.ByteTensor).cuda()
+        initial_n_conf_mask = torch.zeros(
+            n_pred.size()).type(torch.ByteTensor).cuda()
         for i in range(self.B):
             initial_n_conf_mask[:, 4 + i * 5] = 1
         predicted_confidence = n_pred[initial_n_conf_mask]
         true_confidence = n_true[initial_n_conf_mask]
-        no_object_loss = F.mse_loss(predicted_confidence, true_confidence, reduction='sum')
+        no_object_loss = F.mse_loss(
+            predicted_confidence, true_confidence, reduction='sum')
 
         total_loss = self.coord_scale * coord_loss + self.coord_scale * dimension_loss \
-                     + confidence_loss + self.noobject_scale * no_object_loss \
-                     + prob_loss
+            + confidence_loss + self.noobject_scale * no_object_loss \
+            + prob_loss
         return total_loss / prediction.size(0)
