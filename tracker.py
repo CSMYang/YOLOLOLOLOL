@@ -20,6 +20,7 @@ class Tracker:
         self.disappeared = OrderedDict()
         self.max_dis_count = dis_count
         self.id_nums = dict()
+        self.colors = OrderedDict()
 
     def compute_ssim(self, frame_1, frame_2, topleft_and_bottomright):
         """
@@ -66,13 +67,14 @@ class Tracker:
         if len(self.registered_ids) == 0:
             for i in range(len(boxes)):
                 if names[i] in self.id_nums:
-                    label = names[i] + str(self.id_nums[names[i]])
+                    label = names[i] + ' ' + str(self.id_nums[names[i]])
                     self.id_nums[names[i]] += 1
                 else:
-                    label = names[i] + '0'
+                    label = names[i] + ' 0'
                     self.id_nums[names[i]] = 1
                 self.registered_ids[label] = boxes[i, :]
                 self.disappeared[label] = 0
+                self.colors[label] = np.random.choice(range(256), size=3).tolist()
         else:
             dist = self.get_spatial_distances(boxes)
             # rows corresponds to boxes in previous boxes
@@ -88,6 +90,7 @@ class Tracker:
                 label = registered_ids[row]
                 self.registered_ids[label] = boxes[col, :]
                 self.disappeared[label] = 0
+                self.colors[label] = np.random.choice(range(256), size=3).tolist()
                 used_prev_boxes.add(row)
                 used_new_boxes.add(col)
             unused_prev_boxes = set(range(0, dist.shape[0])).difference(used_prev_boxes)
@@ -100,14 +103,16 @@ class Tracker:
                     if self.disappeared[prev_box_label] > self.max_dis_count:
                         del self.registered_ids[prev_box_label]
                         del self.disappeared[prev_box_label]
+                        del self.colors[prev_box_label]
             else:
                 for index in unused_current_boxes:
                     if names[index] in self.id_nums:
-                        label = names[index] + str(self.id_nums[names[index]])
+                        label = names[index] + ' ' + str(self.id_nums[names[index]])
                         self.id_nums[names[index]] += 1
                     else:
-                        label = names[index] + '0'
+                        label = names[index] + ' 0'
                         self.id_nums[names[index]] = 1
                     self.registered_ids[label] = boxes[index, :]
                     self.disappeared[label] = 0
+                    self.colors[label] = np.random.choice(range(256), size=3).tolist()
 

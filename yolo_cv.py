@@ -19,8 +19,8 @@ class Detector:
             self.classes.append(line.strip())
         names.close()
         if cuda:
-            self.yolo.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-            self.yolo.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+            self.yolo.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
+            self.yolo.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
 
     def get_predictions(self, img):
         """
@@ -112,7 +112,7 @@ class Detector:
                     cv2.waitKey(100)
                     break
 
-    def track_everything(self, video_name=None):
+    def track_everything(self, video_name=None, max_disappear=10):
         """
         This function tries to track every object appeared in a video file
         """
@@ -120,7 +120,7 @@ class Detector:
             video_stream = cv2.VideoCapture(0)
         else:
             video_stream = cv2.VideoCapture(video_name)
-        tracker = Tracker()
+        tracker = Tracker(dis_count=max_disappear)
         while cv2.waitKey(1) < 0:
             has_frame, current_frame = video_stream.read()
             if has_frame:
@@ -129,9 +129,10 @@ class Detector:
                 tracker.update(boxes, names)
                 for label in tracker.registered_ids:
                     x, y, w, h = tracker.registered_ids[label]
+                    c = tracker.colors[label]
                     cv2.rectangle(current_frame, (int(x - w / 2), int(y - h / 2)),
-                                  (int(x + w / 2), int(y + h / 2)), (0, 0, 255), 2)
-                    cv2.putText(current_frame, label, (x, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
+                                  (int(x + w / 2), int(y + h / 2)), c, 2)
+                    cv2.putText(current_frame, label, (x, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
 
                 t, _ = self.yolo.getPerfProfile()
                 label = 'Current FPS is: %.2f' % (cv2.getTickFrequency() / t)
