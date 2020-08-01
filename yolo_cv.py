@@ -33,7 +33,7 @@ class Detector:
 
         return predictions
 
-    def draw_boxes(self, frame, predictions, color=None):
+    def draw_boxes(self, frame, predictions, color=None, need_result=False):
         """
         This function takes an image and a set of predictions and draws the corresponding
         bounding boxes.
@@ -58,10 +58,16 @@ class Detector:
                     confidences.append(float(confidence))
                     ids.append(class_name)
         indexs = cv2.dnn.NMSBoxes(boxs, confidences, 0.5, 0.4)
+        if need_result:
+            best_boxes = []
+            best_names = []
         for index in indexs:
             index = int(index)
             x, y, w, h = boxs[index]
             name = ids[index]
+            if need_result:
+                best_boxes.append(boxs[index])
+                best_names.append(name)
             conf = confidences[index]
             if color is None:
                 c = np.random.choice(range(256), size=3).tolist()
@@ -70,6 +76,8 @@ class Detector:
             cv2.rectangle(frame, (x, y), (x + w, y + h), c, 2)
             cv2.putText(frame, name, (x, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
             cv2.putText(frame, str(np.around(conf, 2)), (x, y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
+        if need_result:
+            return np.array(best_boxes), best_names
 
     def detect(self, file, video=False, webcam=False):
         """
