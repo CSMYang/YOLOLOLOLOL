@@ -125,8 +125,8 @@ class LossGetter(nn.Module):
         true_iou = ious[responsibility_mask].view(-1, 5)
         coord_loss = F.mse_loss(
             pred_resp[:, :2], true_resp[:, :2], reduction='sum')
-        dimension_loss = F.mse_loss(torch.sqrt(
-            pred_resp[:, 2:4]), torch.sqrt(true_resp[:, 2:4]), reduction='sum')
+        dimension_loss = F.mse_loss(
+            pred_resp[:, 2:4], true_resp[:, 2:4], reduction='sum')
         confidence_loss = F.mse_loss(
             pred_resp[:, 4], true_iou[:, 4], reduction='sum')
 
