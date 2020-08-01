@@ -2,9 +2,11 @@
 Object Detection using the yolo model we implemented.
 """
 import torch
+import torchvision.transforms as transforms
 import numpy as np
 import cv2
 from yolo import YoloNet
+import matplotlib.pyplot as plt
 
 # Global variables
 CONFID = 0.1
@@ -12,6 +14,7 @@ PROB = 0.1
 NMS = 0.5
 IMG_WIDTH = 448
 IMG_HEIGHT = 448
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def get_classes(file_path):
@@ -30,9 +33,10 @@ def preprocess_img(img, width=IMG_WIDTH, height=IMG_HEIGHT):
     """
     x, y, _ = img.shape
     new_img = cv2.resize(img, (width, height), interpolation=cv2.INTER_LINEAR)
-    result = torch.zeros(1, 3, height, width)
-    result[0, :, :, :] = torch.from_numpy(np.flipud(new_img))
-    result = result.cuda() if torch.cuda.is_available() else result
+    result = torch.zeros(1, 3, height, width, device=DEVICE)
+    # print(transforms.ToTensor()(new_img).shape)
+    result[0, :, :, :] = transforms.ToTensor()(new_img)
+    # result = result.cuda() if torch.cuda.is_available() else result
     return result
 
 
@@ -47,7 +51,8 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
     :return: A list of tuples including class label, score, confidence, and two box coordinates.
     """
 
-    labels, confidences, scores, boxes = torch.Tensor(0), torch.Tensor(0), torch.Tensor(0), torch.Tensor(0, 4)
+    labels, confidences, scores, boxes = torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), \
+                                         torch.Tensor(0, device=DEVICE), torch.Tensor(0, 4, device=DEVICE)
     for i in range(side):
         for j in range(side):
             score, label = torch.max(yolo_output[j, i, 5 * box_num:], 0)
@@ -58,8 +63,8 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
                     continue
 
                 box = yolo_output[j, i, 5 * b: 5 * b + 4]
-                xy_coord = box[:2] * float(side) + torch.Tensor([i, j]) / float(side)
-                box_coords = torch.zeros(4)
+                xy_coord = box[:2] * float(side) + torch.Tensor([i, j], device=DEVICE) / float(side)
+                box_coords = torch.zeros(4, device=DEVICE)
                 box_coords[:2] = xy_coord - 0.5 * box[2:]
                 box_coords[2:] = xy_coord + 0.5 * box[2:]
 
@@ -104,7 +109,7 @@ def non_maximum_supression(scores, boxes, confidence=CONFID, nms=NMS):
             break
         indices = indices[good_ids + 1]
 
-    return torch.Tensor(ids)
+    return torch.Tensor(ids, device=DEVICE)
 
 
 def non_maximum_supression2(labels, confidences, scores, boxes, confidence=CONFID, nms=NMS):
@@ -163,7 +168,8 @@ def detect(yolonet, img, class_num, width=IMG_WIDTH, height=IMG_HEIGHT):
     predictions = get_prediction_from_yolo(yolonet(img_input).squeeze(0), side, box_num)
     labels, confidences, scores, boxes = get_prediction_from_yolo(predictions, side, box_num)
     # NMS
-    labels_nms, probs_nms, boxes_nms = torch.Tensor(0), torch.Tensor(0), torch.Tensor(0, 4)
+    labels_nms, probs_nms, boxes_nms = torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), \
+                                       torch.Tensor(0, 4, device=DEVICE)
     for i in range(class_num):
         indices = (labels_nms == i)
         if torch.sum(indices) == 0:
@@ -213,6 +219,43 @@ def detect2(yolonet, img, classes, width=IMG_WIDTH, height=IMG_HEIGHT):
     return detect
 
 
+def draw_boxes(img, boxes, color=(0, 255, 0)):
+    """
+    Visualize the result of object detection.
+    :param img: The image
+    :param boxes: The result from detect function
+    :return: The image with detected objects.
+    """
+    img_out = img.copy()
+    for b in boxes:
+        label, prob, bc1, bc2 = b
+        cv2.rectangle(img_out, bc1, bc2, color=color, thickness=1)
+        text = "{}, prob:{}".format(label, prob)
+        size, base = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, thickness=1)
+        tc2 = (bc1[0] + size[0] + 1, bc1[1] + size[1] + base + 1)
+        cv2.rectangle(img_out, bc1, tc2, color=color)
+        cv2.putText(img_out, text, (bc1[0] + 1, bc1[1] + 2*base + 1), cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.3, color=(255, 255, 255), thickness=1, lineType=8)
+
+    return img_out
+
+
 if __name__ == "__main__":
+    # Get classes
     classes = get_classes("./voc.names")
     class_num = len(classes)
+
+    # Detect Object
+    img_path = "./p12.jpg"
+    config_path = "./cfg/yolov1.cfg"
+    img = cv2.imread(img_path)
+    yolo = YoloNet(config_path)
+    # result = detect(yolo, img, class_num)
+    result = detect2(yolo, img, classes)
+
+    # result = [("car", 0.1, (0, 0), (150, 150))]
+
+    # Draw boxes
+    img_out = draw_boxes(img, result)
+    img_plt_out = cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
+    plt.imshow(img_plt_out)
+    plt.show()
