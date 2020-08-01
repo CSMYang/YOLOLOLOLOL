@@ -246,12 +246,12 @@ def draw_boxes(img, boxes, color=(0, 255, 0)):
     img_out = img.copy()
     for b in boxes:
         label, prob, bc1, bc2 = b
-        cv2.rectangle(img_out, bc1, bc2, color=color, thickness=1)
-        text = "{}, prob:{}".format(label, prob)
-        size, base = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, thickness=1)
+        cv2.rectangle(img_out, bc1, bc2, color=color, thickness=3)
+        name = "{}, prob:{}".format(label, round(float(prob), 2))
+        size, base = cv2.getTextSize(name, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, thickness=1)
         tc2 = (bc1[0] + size[0] + 1, bc1[1] + size[1] + base + 1)
         cv2.rectangle(img_out, bc1, tc2, color=color)
-        cv2.putText(img_out, text, (bc1[0] + 1, bc1[1] + 2*base + 1), cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.3,
+        cv2.putText(img_out, name, (bc1[0] + 1, bc1[1] + 2*base + 1), cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.75,
                     color=(255, 255, 255), thickness=1, lineType=8)
 
     return img_out
