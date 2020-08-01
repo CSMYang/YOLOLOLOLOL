@@ -33,7 +33,7 @@ class Detector:
 
         return predictions
 
-    def draw_boxes(self, frame, predictions, color=None, need_result=False):
+    def get_boxes(self, frame, predictions, color=None, need_result=False, draw=True):
         """
         This function takes an image and a set of predictions and draws the corresponding
         bounding boxes.
@@ -69,13 +69,14 @@ class Detector:
                 best_boxes.append(boxs[index])
                 best_names.append(name)
             conf = confidences[index]
-            if color is None:
-                c = np.random.choice(range(256), size=3).tolist()
-            else:
-                c = color
-            cv2.rectangle(frame, (x, y), (x + w, y + h), c, 2)
-            cv2.putText(frame, name, (x, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
-            cv2.putText(frame, str(np.around(conf, 2)), (x, y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
+            if draw:
+                if color is None:
+                    c = np.random.choice(range(256), size=3).tolist()
+                else:
+                    c = color
+                cv2.rectangle(frame, (x, y), (x + w, y + h), c, 2)
+                cv2.putText(frame, name, (x, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
+                cv2.putText(frame, str(np.around(conf, 2)), (x, y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
         if need_result:
             return np.array(best_boxes), best_names
 
@@ -86,7 +87,7 @@ class Detector:
         if not video:
             img = cv2.imread(file)
             predictions = self.get_predictions(img)
-            self.draw_boxes(img, predictions)
+            self.get_boxes(img, predictions)
             cv2.imshow("", img)
             cv2.waitKey(-1)
         else:
@@ -99,7 +100,7 @@ class Detector:
                 has_frame, current_frame = video_stream.read()
                 if has_frame:
                     predictions = self.get_predictions(current_frame)
-                    self.draw_boxes(current_frame, predictions, color=(0, 255, 0))
+                    self.get_boxes(current_frame, predictions, color=(0, 255, 0))
                     t, _ = self.yolo.getPerfProfile()
                     label = 'Current FPS is: %.2f' % (cv2.getTickFrequency() / t)
                     cv2.putText(current_frame, label, (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
