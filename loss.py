@@ -102,16 +102,16 @@ class LossGetter(nn.Module):
             pred_coordinates = torch.zeros((predicted_boxes.size()[0], 4),
                                            requires_grad=True).type(torch.FloatTensor).cuda()
             pred_coordinates[:, :2] = predicted_boxes[:, :2] / \
-                self.S - predicted_boxes[:, 2:4] / 2
+                float(self.S) - predicted_boxes[:, 2:4] / 2
             pred_coordinates[:, 2:4] = predicted_boxes[:,
-                                                       :2] / self.S + predicted_boxes[:, 2:4] / 2
+                                                       :2] / float(self.S) + predicted_boxes[:, 2:4] / 2
             real_box = true_box[i].view(-1, 5)
             real_coordinate = torch.zeros((real_box.size()[0], 4),
                                           requires_grad=True).type(torch.FloatTensor).cuda()
             real_coordinate[:, :2] = real_box[:, :2] / \
-                self.S - real_box[:, 2:4] / 2
+                float(self.S) - real_box[:, 2:4] / 2
             real_coordinate[:, 2:4] = real_box[:, :2] / \
-                self.S + real_box[:, 2:4] / 2
+                float(self.S) + real_box[:, 2:4] / 2
             iou = self.iou_score(pred_coordinates, real_coordinate)
             best_score, best_index = iou.max(0)
             best_index = best_index.data.cuda()
