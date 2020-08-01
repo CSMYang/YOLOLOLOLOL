@@ -9,7 +9,7 @@ class Tracker:
     """
     This class tracks the objects from videos
     """
-    def __init__(self, distance_threshold=30, ssim_gaussian=False, ssim_sigma=1.5, dis_count=50):
+    def __init__(self, distance_threshold=30, ssim_gaussian=True, ssim_sigma=1.5, dis_count=50):
         """
         This function initializes a tracker.
         """
@@ -72,8 +72,8 @@ class Tracker:
                     label = names[i] + '0'
                     self.id_nums[names[i]] = 1
                 self.registered_ids[label] = boxes[i, :]
+                self.disappeared[label] = 0
         else:
-            boxes = np.array(boxes)
             dist = self.get_spatial_distances(boxes)
             # rows corresponds to boxes in previous boxes
             # cols corresponds to new boxes
@@ -86,7 +86,7 @@ class Tracker:
                 if row in used_prev_boxes or col in used_new_boxes:
                     continue
                 label = registered_ids[row]
-                self.registered_ids[label] = boxes[col, :2]
+                self.registered_ids[label] = boxes[col, :]
                 self.disappeared[label] = 0
                 used_prev_boxes.add(row)
                 used_new_boxes.add(col)
@@ -102,5 +102,12 @@ class Tracker:
                         del self.disappeared[prev_box_label]
             else:
                 for index in unused_current_boxes:
-                    self.registered_ids[]
+                    if names[index] in self.id_nums:
+                        label = names[index] + str(self.id_nums[names[index]])
+                        self.id_nums[names[index]] += 1
+                    else:
+                        label = names[index] + '0'
+                        self.id_nums[names[index]] = 1
+                    self.registered_ids[label] = boxes[index, :]
+                    self.disappeared[label] = 0
 

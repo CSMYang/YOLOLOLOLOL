@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from tracker import Tracker
 
 
 class Detector:
@@ -66,7 +67,8 @@ class Detector:
             x, y, w, h = boxs[index]
             name = ids[index]
             if need_result:
-                best_boxes.append(boxs[index])
+                centroid_x, centroid_y = int(x + w / 2), int(y + h / 2)
+                best_boxes.append([centroid_x, centroid_y, w, h])
                 best_names.append(name)
             conf = confidences[index]
             if draw:
@@ -110,8 +112,39 @@ class Detector:
                     cv2.waitKey(100)
                     break
 
+    def track_everything(self, video_name=None):
+        """
+        This function tries to track every object appeared in a video file
+        """
+        if video_name is None:
+            video_stream = cv2.VideoCapture(0)
+        else:
+            video_stream = cv2.VideoCapture(video_name)
+        tracker = Tracker()
+        while cv2.waitKey(1) < 0:
+            has_frame, current_frame = video_stream.read()
+            if has_frame:
+                predictions = self.get_predictions(current_frame)
+                boxes, names = self.get_boxes(current_frame, predictions, need_result=True, draw=False)
+                tracker.update(boxes, names)
+                for label in tracker.registered_ids:
+                    x, y, w, h = tracker.registered_ids[label]
+                    cv2.rectangle(current_frame, (int(x - w / 2), int(y - h / 2)),
+                                  (int(x + w / 2), int(y + h / 2)), (0, 0, 255), 2)
+                    cv2.putText(current_frame, label, (x, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
+
+                t, _ = self.yolo.getPerfProfile()
+                label = 'Current FPS is: %.2f' % (cv2.getTickFrequency() / t)
+                cv2.putText(current_frame, label, (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+                cv2.imshow("", current_frame)
+            else:
+                print('End of the video reached!')
+                cv2.waitKey(100)
+                break
+
 
 if __name__ == '__main__':
     detector = Detector()
     detector.detect('p12.jpg')
-    detector.detect(None, True, True)
+    # detector.detect(None, True, True)
+    detector.track_everything()
