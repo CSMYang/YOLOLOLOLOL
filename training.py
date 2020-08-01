@@ -89,17 +89,22 @@ if __name__ == "__main__":
     weight_decay = 5.0e-4
     training_cycle = 100
     batch_size = 64
-
+    S = 7
+    C = 20
+    B = 3
     optimizer = torch.optim.SGD(
         yolo.parameters(), lr=init_lr, momentum=momentum, weight_decay=weight_decay)
 
     # assume the DataSet is properly implemneted
     # prob need to come back and fix it
-    Train_data_set = FormatedDataSet(True, @"data\source_data\VOC2007\JPEGImages", @"data\processed_data\VOC2007_training_label.txt", yolo.S, yolo.B, yolo.C)
+    Train_data_set = FormatedDataSet(True, "data\source_data\VOC2007\JPEGImages",
+                                     "data\processed_data\VOC2007_training_label.txt", S, B, C)
     Train_loader = DataLoader(
         Train_data_set, batch_size=batch_size, shuffle=True, num_workers=2)
 
-    Validation_data_set = FormatedDataSet(True, @"data\source_data\VOC2007\JPEGImages", @"data\processed_data\VOC2007_validation_label.txt", yolo.S, yolo.B, yolo.C)
+    print("hi")
+    Validation_data_set = FormatedDataSet(True, "data\source_data\VOC2007\JPEGImages",
+                                          "data\processed_data\VOC2007_validation_label.txt", S, B, C)
     Validation_loader = DataLoader(
         Train_data_set, batch_size=batch_size, shuffle=True, num_workers=2)
 
@@ -143,4 +148,4 @@ if __name__ == "__main__":
         total_val_loss /= i
         if best_loss == 0 or total_val_loss <= best_loss:
             best_loss = total_val_loss
-            torch.save(yolo.state_dict(), @"data\training_result")
+            torch.save(yolo.state_dict(), "data\training_result")
