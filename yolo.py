@@ -109,12 +109,12 @@ class Local(nn.Module):
 #         return prediction, total_loss
 
 
-# class Flatten(nn.Module):
-#     def __init__(self):
-#         super(Flatten, self).__init__()
-#
-#     def forward(self, x):
-#         return x.view(x.size(0), -1)
+class Flatten(nn.Module):
+    def __init__(self):
+        super(Flatten, self).__init__()
+
+    def forward(self, x):
+        return x.view(x.size(0), -1)
 
 
 def build_yolonet(module_params):
@@ -183,16 +183,16 @@ def build_yolonet(module_params):
             stride = int(layer['stride'])
             pad = int(layer['pad'])
 
-            local_layer = Local(in_channels=channels[-1], out_channels=out_channel,
-                                   kernel_size=kernel, stride=stride, padding=pad)
-            # module.add_module("Flatten_{}".format(i), Flatten())
-            # local_layer = nn.Linear(7 * 7 * 1024, 4096)
+            # local_layer = Local(in_channels=channels[-1], out_channels=out_channel,
+            #                        kernel_size=kernel, stride=stride, padding=pad)
+            module.add_module("Flatten_{}".format(i), Flatten())
+            local_layer = nn.Linear(12*12*1024, 4096)
             module.add_module("local_layer_{}".format(i), local_layer)
             if "activation" in layer and layer["activation"] == "leaky":
                 leaky = nn.LeakyReLU(negative_slope=0.1)
                 module.add_module("leaky_relu_{}".format(i), leaky)
             # update channels
-            channels.append(out_channel)
+            channels.append(4096)
 
         # dropout
         elif layer_type == "dropout":
@@ -260,9 +260,14 @@ class YoloNet(nn.Module):
         #     elif type == "detection": # detection
         #         output = x.view(-1, self.side, self.side, (1 + self.coords) * self.n + self.classes)
         # print(type(self.modules), type(self.hyperparams), type(self.detection_param))
+        # print(self.hyperparams)
         for module in self.m:
             output = module(output)
-        output = output.view(-1, self.side, self.side, (1 + self.coords) * self.n + self.classes)
+        classes = int(self.detection_param['classes'])
+        coords = int(self.detection_param['coords'])
+        side = int(self.detection_param['side'])
+        num = int(self.detection_param['num'])
+        output = output.view(-1, side, side, (1 + coords) * num + classes)
         return output
 
     # def _initialize_weights(self):
