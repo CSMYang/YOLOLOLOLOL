@@ -19,7 +19,7 @@ class FormatedDataSet(Dataset):
         self.grid_size = S
         self.number_bounding_box = B
         self.number_class = C
-        self.image_size = 418
+        self.image_size = 448
         self.label_file = processed_label
         self.image_set_location = image_set_location
 
@@ -36,7 +36,7 @@ class FormatedDataSet(Dataset):
             number_of_boxes = len(entry)//5
             boxes = []
             labels = []
-            image_x, image_y, _ = cv2.imread(self.image[i]).shape
+            image_y, image_x, _ = cv2.imread(self.image[i]).shape
             for box_index in range(number_of_boxes):
                 xmin = int(entry[box_index*5])
                 xmax = int(entry[box_index*5+1])
@@ -52,7 +52,8 @@ class FormatedDataSet(Dataset):
                 x_center /= image_x
                 y_center /= image_y
                 # [[x,y,w,h], [w1,y1,w1,h1]...] for ith index picture where x y w h are in portion of the image
-                boxes.append([x_center, y_center, w, h])
+                boxes.append([float(x_center), float(
+                    y_center), float(w), float(h)])
                 # [l1, l2.......] for ith index picture
                 labels.append(label)
             self.image_boxes.append(boxes)
@@ -84,29 +85,28 @@ class FormatedDataSet(Dataset):
 
         result = torch.zeros(self.grid_size, self.grid_size,
                              5*self.number_bounding_box+self.number_class)
-        print(vector, "------------------")
         for index, box_entry in enumerate(vector):
-            print(box_entry)
-            x_center = box_entry[index][0]
-            y_center = box_entry[index][1]
-            w = box_entry[index][2]
-            h = box_entry[index][3]
-            print(type(w), h)
+            x_center = box_entry[0]
+            y_center = box_entry[1]
+            w = box_entry[2]
+            h = box_entry[3]
             label = label[index]
             # now we need to determine which box in the grid this center belongs too
-            x_center = x_center*418
-            y_center = y_center*418
-            w_center = w*418
-            h_center = h*418
-            cell_size = 418/7
-            i = math.floor(x_center/cell_size)
-            j = math.floor(y_center/cell_size)
+            x_center = int(x_center*448)
+            y_center = int(y_center*448)
+            w_center = int(w*448)
+            h_center = int(h*448)
+            cell_size = int(448/7)
+            i = int(math.floor(x_center/cell_size))
+            j = int(math.floor(y_center/cell_size))
             # do we take the abs position or the relative position of x,y wrt to to the cell ij that it is located in
             for x in range(self.number_bounding_box):
                 k = x*5
-                print(i, j, w, h, 1)
-                result[i, j, k:k+5] = i, j, w, h, 1
+                result[i, j, k] = x_center
+                result[i, j, k+1] = y_center
+                result[i, j, k+2] = w
+                result[i, j, k+3] = h
+                result[i, j, k+4] = 1
 
-                result[i, j, 5*self.number_bounding_box*5 + label] = 1
-
+                result[i, j, 5*self.number_bounding_box + label] = 1
             return result

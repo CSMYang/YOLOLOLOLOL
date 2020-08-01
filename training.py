@@ -5,6 +5,7 @@ from torch.autograd import Variable
 from yolo import *
 from loss import *
 from DataSet import *
+from detection import *
 import os
 import numpy as np
 import math
@@ -106,7 +107,7 @@ if __name__ == "__main__":
     Validation_data_set = FormatedDataSet(True, "data\source_data\VOC2007\JPEGImages",
                                           "data\processed_data\VOC2007_validation_label.txt", S, B, C)
     Validation_loader = DataLoader(
-        Train_data_set, batch_size=batch_size, shuffle=True, num_workers=2)
+        Validation_data_set, batch_size=batch_size, shuffle=True, num_workers=2)
 
     for iteration in range(training_cycle):
 
@@ -119,9 +120,9 @@ if __name__ == "__main__":
 
             # might want to update learning rate, but for now just leave it to see if it works or not
             optimizer.zero_grad()
-
-            prediction = yolo.forward(img)
-
+            print(img.shape)
+            prediction = detect(yolo, img, 20)
+            print(prediction)
             loss = Loss_function.forward(prediction, target)
 
             optimizer.step()
