@@ -126,7 +126,7 @@ class LossGetter(nn.Module):
         coord_loss = F.mse_loss(
             pred_resp[:, :2], true_resp[:, :2], reduction='sum')
         dimension_loss = F.mse_loss(torch.sqrt(
-            pred_resp[:, :2]), torch.sqrt(true_resp[:, :2]), reduction='sum')
+            pred_resp[:, 2:4]), torch.sqrt(true_resp[:, 2:4]), reduction='sum')
         confidence_loss = F.mse_loss(
             pred_resp[:, 4], true_iou[:, 4], reduction='sum')
 
