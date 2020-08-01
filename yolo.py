@@ -180,20 +180,20 @@ def build_yolonet(module_params):
         # local
         elif layer_type == "local":
             kernel = int(layer['size'])
-            out_channel = int(layer['filters'])
             stride = int(layer['stride'])
             pad = int(layer['pad'])
+            out_channel = int(layer['filters']) * (kernel + pad) * (kernel + pad)
 
             # local_layer = Local(in_channels=channels[-1], out_channels=out_channel,
             #                        kernel_size=kernel, stride=stride, padding=pad)
             module.add_module("Flatten_{}".format(i), Flatten())
-            local_layer = nn.Linear(7 * 7 * 1024, 4096)
+            local_layer = nn.Linear(in_features=(7 * 7 * channels[-1]), out_features=out_channel)
             module.add_module("local_layer_{}".format(i), local_layer)
             if "activation" in layer and layer["activation"] == "leaky":
                 leaky = nn.LeakyReLU(negative_slope=0.1)
                 module.add_module("leaky_relu_{}".format(i), leaky)
             # update channels
-            channels.append(4096)
+            channels.append(out_channel)
 
         # dropout
         elif layer_type == "dropout":
@@ -228,7 +228,7 @@ def build_yolonet(module_params):
 
         # add module
         modules.append(module)
-    print(type(modules))
+    # print(type(modules))
     return net_param, detect_param, modules
 
 
@@ -240,7 +240,7 @@ class YoloNet(nn.Module):
         super(YoloNet, self).__init__()
         self.module_params = get_model_from_config(config_file)
         self.hyperparams, self.detection_param, self.m = build_yolonet(self.module_params)
-        print(type(self.m), type(self.hyperparams), type(self.detection_param))
+        # print(type(self.m), type(self.hyperparams), type(self.detection_param))
         # print(self.modules)
         self.header = torch.zeros(1, 5, dtype=torch.int32)
         self.seen = 0
@@ -261,7 +261,7 @@ class YoloNet(nn.Module):
         #     elif type == "detection": # detection
         #         output = x.view(-1, self.side, self.side, (1 + self.coords) * self.n + self.classes)
         # print(type(self.modules), type(self.hyperparams), type(self.detection_param))
-        print(self.m)
+        # print(self.m)
         for module in self.m:
             output = module(output)
         classes = int(self.detection_param['classes'])

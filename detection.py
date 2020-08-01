@@ -156,7 +156,7 @@ def non_maximum_supression2(labels, confidences, scores, boxes, confidence=CONFI
         union = areas[i] + areas[boxes_indices[1:]] - intersection
         iou = intersection / union
 
-        # Remove boxes whose IoU is higher than the threshold.
+        # Remove boxes whose iou is higher than the threshold.
         good_ids = (iou <= nms).nonzero().squeeze()
         if good_ids.numel() == 0:
             break
