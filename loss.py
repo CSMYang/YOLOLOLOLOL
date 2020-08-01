@@ -73,7 +73,7 @@ class LossGetter(nn.Module):
 
         # Initialize corresponding masks for selecting predictions
         # with or without objects
-        c_mask = true_labels[:, :, :, 4] != 0
+        c_mask = true_labels[:, :, :, 4] > 0
         n_mask = true_labels[:, :, :, 4] == 0
         c_mask = c_mask.unsqueeze(-1).expand_as(true_labels)
         n_mask = n_mask.unsqueeze(-1).expand_as(true_labels)

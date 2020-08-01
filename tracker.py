@@ -90,7 +90,6 @@ class Tracker:
                 label = registered_ids[row]
                 self.registered_ids[label] = boxes[col, :]
                 self.disappeared[label] = 0
-                self.colors[label] = np.random.choice(range(256), size=3).tolist()
                 used_prev_boxes.add(row)
                 used_new_boxes.add(col)
             unused_prev_boxes = set(range(0, dist.shape[0])).difference(used_prev_boxes)
