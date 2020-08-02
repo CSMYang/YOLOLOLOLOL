@@ -153,7 +153,8 @@ class Detector:
                 cv2.waitKey(100)
                 break
 
-    def track_specific_image(self, video_name, object_image, class_name=None, max_disp=3):
+    def track_specific_image(self, video_name, object_image, class_name=None,
+                             max_disp=3, ssim_thresh=0.5):
         """
         This function tracks to find a provided object from the video and track it.
         """
@@ -173,7 +174,7 @@ class Detector:
                 tracker.update(boxes, names)
                 if not found:
                     class_name, found = tracker.find_matching_object(
-                        current_frame, object_image, class_name)
+                        current_frame, object_image, ssim_thresh, class_name)
                 if found and not Deleted:
                     box = tracker.registered_ids[class_name]
                     del tracker.registered_ids[class_name]
@@ -206,5 +207,5 @@ if __name__ == '__main__':
     detector = Detector()
     detector.detect('p12.jpg')
     # detector.detect(None, True, True)
-    detector.track_specific_image("testing.mp4", "Capture.PNG", 'cup', max_disp=1)
+    detector.track_specific_image("testing.mp4", "Capture.PNG", class_name='cup', max_disp=1)
     # detector.track_everything()

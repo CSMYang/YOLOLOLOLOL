@@ -125,7 +125,7 @@ class Tracker:
                     self.colors[label] = np.random.choice(
                         range(256), size=3).tolist()
 
-    def find_matching_object(self, frame, object_image, label=None):
+    def find_matching_object(self, frame, object_image, ssim_thresh=0.5, label=None):
         """
         This function tries to find the object from a frame of current video.
         """
@@ -147,7 +147,7 @@ class Tracker:
                 names.append(name)
         if len(ssims):
             index = np.argmax(ssims)
-            if ssims[index] > 0.5:
+            if ssims[index] > ssim_thresh:
                 found = True
             return names[index], found
         return None, False
