@@ -207,6 +207,8 @@ def build_yolonet(module_params):
             if "activation" in layer and layer["activation"] == "linear":
                 linear = nn.Linear(in_features=channels[-1], out_features=out_channel)
                 module.add_module("linear_{}".format(i), linear)
+            sigmoid_layer = nn.Sigmoid()
+            module.add_module("sigmoid_{}".format(i), sigmoid_layer)
 
         # # detection
         elif layer_type == "detection": # like yolo layer in yolo-v3
@@ -269,6 +271,7 @@ class YoloNet(nn.Module):
         side = int(self.detection_param['side'])
         num = int(self.detection_param['num'])
         output = output.view(-1, side, side, (1 + coords) * num + classes)
+        # print(output)
         return output
 
     # def _initialize_weights(self):
