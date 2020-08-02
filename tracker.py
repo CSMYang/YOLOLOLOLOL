@@ -115,3 +115,23 @@ class Tracker:
                     self.disappeared[label] = 0
                     self.colors[label] = np.random.choice(range(256), size=3).tolist()
 
+    def find_matching_object(self, frame, object_image, label=None):
+        """
+        This function tries to find the object from a frame of current video.
+        """
+        found = False
+        n = len(label)
+        ssims = []
+        names = []
+        for name in self.registered_ids:
+            if label is None or name[:n] == label:
+                x, y, w, h = self.registered_ids[name]
+                x_min, x_max = int(x - w / 2), int(x + w / 2)
+                y_min, y_max = int(y - h / 2), int(y + h / 2)
+                ssim = self.compute_ssim(frame, object_image, [x_min, y_min, x_max, y_max])
+                ssims.append(ssim)
+                names.append(name)
+        index = np.argmax(ssims)
+        if ssims[index] > 0.5:
+            found = True
+        return names[index], found

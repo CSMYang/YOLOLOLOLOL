@@ -143,6 +143,45 @@ class Detector:
                 cv2.waitKey(100)
                 break
 
+    def track_specific_image(self, video_name, object_image, label=None):
+        """
+        This function tracks to find a provided object from the video and track it.
+        """
+        video_stream = cv2.VideoCapture(video_name)
+        tracker = Tracker()
+        found = False
+        while cv2.waitKey(1) < 0:
+            has_frame, current_frame = video_stream.read()
+            if has_frame:
+                predictions = self.get_predictions(current_frame)
+                boxes, names = self.get_boxes(current_frame, predictions, need_result=True, draw=False)
+                tracker.update(boxes, names)
+                if not found:
+                    label, found = tracker.find_matching_object(current_frame, object_image, label)
+                if found:
+                    box = tracker.registered_ids[label]
+                    del tracker.registered_ids[label]
+                    del tracker.disappeared[label]
+                    del tracker.colors[label]
+                    tracker.registered_ids['Target found!'] = box
+                    tracker.disappeared['Target found!'] = 0
+                    tracker.colors['Target found!'] = [0, 0, 255]
+                for label in tracker.registered_ids:
+                    x, y, w, h = tracker.registered_ids[label]
+                    c = tracker.colors[label]
+                    cv2.rectangle(current_frame, (int(x - w / 2), int(y - h / 2)),
+                                  (int(x + w / 2), int(y + h / 2)), c, 2)
+                    cv2.putText(current_frame, label, (x, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
+
+                t, _ = self.yolo.getPerfProfile()
+                label = 'Current FPS is: %.2f' % (cv2.getTickFrequency() / t)
+                cv2.putText(current_frame, label, (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+                cv2.imshow("", current_frame)
+            else:
+                print('End of the video reached!')
+                cv2.waitKey(100)
+                break
+
 
 if __name__ == '__main__':
     detector = Detector()
