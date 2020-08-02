@@ -119,6 +119,8 @@ class Tracker:
         """
         This function tries to find the object from a frame of current video.
         """
+        if len(self.registered_ids) == 0:
+            return [], False
         found = False
         n = len(label)
         ssims = []

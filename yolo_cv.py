@@ -143,7 +143,7 @@ class Detector:
                 cv2.waitKey(100)
                 break
 
-    def track_specific_image(self, video_name, object_image, label=None):
+    def track_specific_image(self, video_name, object_image, class_name=None):
         """
         This function tracks to find a provided object from the video and track it.
         """
@@ -157,12 +157,12 @@ class Detector:
                 boxes, names = self.get_boxes(current_frame, predictions, need_result=True, draw=False)
                 tracker.update(boxes, names)
                 if not found:
-                    label, found = tracker.find_matching_object(current_frame, object_image, label)
+                    class_name, found = tracker.find_matching_object(current_frame, object_image, class_name)
                 if found:
-                    box = tracker.registered_ids[label]
-                    del tracker.registered_ids[label]
-                    del tracker.disappeared[label]
-                    del tracker.colors[label]
+                    box = tracker.registered_ids[class_name]
+                    del tracker.registered_ids[class_name]
+                    del tracker.disappeared[class_name]
+                    del tracker.colors[class_name]
                     tracker.registered_ids['Target found!'] = box
                     tracker.disappeared['Target found!'] = 0
                     tracker.colors['Target found!'] = [0, 0, 255]
