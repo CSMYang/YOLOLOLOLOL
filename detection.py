@@ -164,9 +164,35 @@ def non_maximum_supression2(labels, confidences, scores, boxes, confidence=CONFI
         boxes_indices = boxes_indices[good_ids + 1]
 
     # Remove boxes whose confidence is lower than the threshold.
-    good_ids = (confidences[result] >= confidence)
+    # good_ids = (confidences[result] >= confidence)
 
     return labels[good_ids], confidences[good_ids], scores[good_ids], boxes[good_ids]
+
+
+def non_maximum_supression3(labels, confidences, scores, boxes, confidence=CONFID, nms=NMS):
+    """
+    Apply the non maximum supression to the yolo_output.
+    Removes detections with lower object confidence score than confidence.
+    :return: A list of tuples including class label, score, confidence, and two box coordinates.
+    """
+
+    indexs = cv2.dnn.NMSBoxes(boxes.tolist(), confidences.tolist(), confidence, nms)
+    print("got indices")
+    new_labels, new_confidences, new_scores, new_boxes = [], [], [], []
+
+    for i in indexs:
+        new_labels.append(labels[i])
+        new_confidences.append(confidences[i])
+        new_scores.append(scores[i])
+        new_boxes.append(boxes[i])
+        # print(boxes[i].shape)
+
+    new_labels, new_confidences, new_scores, new_boxes = torch.stack(new_labels, 0).reshape((len(new_labels))), \
+                                                         torch.stack(new_confidences, 0).reshape((len(new_confidences))), \
+                                                         torch.stack(new_scores, 0).reshape((len(new_scores))), \
+                                                         torch.stack(new_boxes, 0).reshape((len(new_boxes), 4))
+    # print(new_labels, new_confidences, new_scores, new_boxes)
+    return new_labels, new_confidences, new_scores, new_boxes
 
 
 def detect(yolonet, img, class_num, width=IMG_WIDTH, height=IMG_HEIGHT):
@@ -224,7 +250,7 @@ def detect2(yolonet, img, classes, width=IMG_WIDTH, height=IMG_HEIGHT):
     labels, confidences, scores, boxes = get_prediction_from_yolo(yolonet(img_input).squeeze(0), side, box_num)
     # labels, confidences, scores, boxes = get_prediction_from_yolo(predictions, side, box_num)
     # NMS
-    labels_nms, confidences_nms, scores_nms, boxes_nms = non_maximum_supression2(labels, confidences, scores, boxes)
+    labels_nms, confidences_nms, scores_nms, boxes_nms = non_maximum_supression3(labels, confidences, scores, boxes)
 
     # Reformat the result as a list of tuple.
     detect = []
@@ -246,12 +272,13 @@ def draw_boxes(img, boxes, color=(0, 255, 0)):
     img_out = img.copy()
     for b in boxes:
         label, prob, bc1, bc2 = b
+        # print("coordinates: {}, {}".format(bc1, bc2))
         cv2.rectangle(img_out, bc1, bc2, color=color, thickness=3)
         name = "{}, prob:{}".format(label, round(float(prob), 2))
-        size, base = cv2.getTextSize(name, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, thickness=1)
-        tc2 = (bc1[0] + size[0] + 1, bc1[1] + size[1] + base + 1)
-        cv2.rectangle(img_out, bc1, tc2, color=color)
-        cv2.putText(img_out, name, (bc1[0] + 1, bc1[1] + 2*base + 1), cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.75,
+        # size, base = cv2.getTextSize(name, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, thickness=1)
+        # tc2 = (bc1[0] + size[0] + 1, bc1[1] + size[1] + base + 1)
+        # cv2.rectangle(img_out, bc1, tc2, color=color)
+        cv2.putText(img_out, name, ((bc1[0] + bc1[0]) // 2, (bc1[1] + bc2[1]) // 2), cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.75,
                     color=(255, 255, 255), thickness=1, lineType=8)
 
     return img_out
@@ -265,12 +292,14 @@ if __name__ == "__main__":
     # Detect Object
     img_path = "./p12.jpg"
     config_path = "./cfg/yolov1.cfg"
+    weight_path = ""
     img = cv2.imread(img_path)
     yolo = YoloNet(config_path)
+    # yolo.load_state_dict(torch.load(weight_path))
     # result = detect(yolo, img, class_num)
     result = detect2(yolo, img, classes)
 
-    # result = [("car", 0.1, (0, 0), (150, 150))]
+    # result = [("car", 0.1, (120, 120), (190, 190))]
 
     # Draw boxes
     img_out = draw_boxes(img, result)
