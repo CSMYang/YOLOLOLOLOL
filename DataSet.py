@@ -53,7 +53,7 @@ class FormatedDataSet(Dataset):
                 y_center /= image_y
                 # [[x,y,w,h], [w1,y1,w1,h1]...] for ith index picture where x y w h are in portion of the image
                 boxes.append([float(x_center), float(
-                    y_center), float(w), float(h)])
+                    y_center), float(w), float(h), float(xmin), float(ymin)])
                 # [l1, l2.......] for ith index picture
                 labels.append(label)
             self.image_boxes.append(boxes)
@@ -97,6 +97,8 @@ class FormatedDataSet(Dataset):
             y_center = box_entry[1]
             w = box_entry[2]
             h = box_entry[3]
+            xmin = box_entry[4]
+            ymin = box_entry[5]
             label = label[index]
             # now we need to determine which box in the grid this center belongs too
             x_center = int(x_center*448)
@@ -107,12 +109,14 @@ class FormatedDataSet(Dataset):
             i = int(math.floor(x_center/cell_size))
             j = int(math.floor(y_center/cell_size))
             # do we take the abs position or the relative position of x,y wrt to to the cell ij that it is located in
+            x_relative = (x_center - xmin)/w_center
+            y_relative = (y_center - ymin)/h_center
             for x in range(self.number_bounding_box):
                 k = x*5
-                result[i, j, k] = x_center
-                result[i, j, k+1] = y_center
-                result[i, j, k+2] = w
-                result[i, j, k+3] = h
+                result[i, j, k] = x_relative
+                result[i, j, k+1] = y_relative
+                result[i, j, k+2] = w_center/448
+                result[i, j, k+3] = h_center/448
                 result[i, j, k+4] = 1
 
                 result[i, j, 5*self.number_bounding_box + label] = 1
