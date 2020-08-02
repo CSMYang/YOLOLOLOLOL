@@ -295,8 +295,9 @@ if __name__ == "__main__":
     # Detect Object
     img_path = "./p12.jpg"
     config_path = "./cfg/yolov1.cfg"
-    weight_path = ""
+    weight_path = "data\\training_result\\best_state.pth"
     img = cv2.imread(img_path)
+    # print(img.shape)
     yolo = YoloNet(config_path)
     # yolo.load_state_dict(torch.load(weight_path))
     # result = detect(yolo, img, class_num)
