@@ -122,7 +122,8 @@ class Tracker:
         if len(self.registered_ids) == 0:
             return [], False
         found = False
-        n = len(label)
+        if label:
+            n = len(label)
         ssims = []
         names = []
         for name in self.registered_ids:
@@ -133,7 +134,9 @@ class Tracker:
                 ssim = self.compute_ssim(frame, object_image, [x_min, y_min, x_max, y_max])
                 ssims.append(ssim)
                 names.append(name)
-        index = np.argmax(ssims)
-        if ssims[index] > 0.5:
-            found = True
-        return names[index], found
+        if len(ssims):
+            index = np.argmax(ssims)
+            if ssims[index] > 0.5:
+                found = True
+            return names[index], found
+        return [], False
