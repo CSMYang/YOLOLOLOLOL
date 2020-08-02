@@ -206,5 +206,5 @@ if __name__ == '__main__':
     detector = Detector()
     detector.detect('p12.jpg')
     # detector.detect(None, True, True)
-    detector.track_specific_image("testing.mp4", "Capture.PNG", max_disp=3)
+    detector.track_specific_image("testing.mp4", "Capture.PNG", 'cup', max_disp=1)
     # detector.track_everything()
