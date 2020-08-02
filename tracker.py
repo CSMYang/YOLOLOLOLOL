@@ -9,7 +9,8 @@ class Tracker:
     """
     This class tracks the objects from videos
     """
-    def __init__(self, distance_threshold=30, ssim_gaussian=True, ssim_sigma=1.5, dis_count=50):
+
+    def __init__(self, distance_threshold=30, ssim_gaussian=True, ssim_sigma=1.5, dis_count=3):
         """
         This function initializes a tracker.
         """
@@ -30,8 +31,12 @@ class Tracker:
         frame_1 = cv2.cvtColor(frame_1, cv2.COLOR_BGR2GRAY)
         frame_2 = cv2.cvtColor(frame_2, cv2.COLOR_BGR2GRAY)
         x_1, y_1, x_2, y_2 = topleft_and_bottomright
-        object_ = frame_1[y_1: y_2, x_1, x_2]
-        frame_2 = cv2.resize(frame_2, object_.shape)
+        if x_1 < 0:
+            x_1 = 0
+        if y_1 < 0:
+            y_1 = 0
+        object_ = frame_1[y_1: y_2, x_1:x_2]
+        frame_2 = cv2.resize(frame_2, (object_.shape[1], object_.shape[0]))
         ssim = structural_similarity(object_, frame_2, data_range=frame_2.max() - frame_2.min(),
                                      gaussian_weights=self.ssim_gaussian, sigma=self.ssim_sigma)
         return ssim
@@ -74,7 +79,8 @@ class Tracker:
                     self.id_nums[names[i]] = 1
                 self.registered_ids[label] = boxes[i, :]
                 self.disappeared[label] = 0
-                self.colors[label] = np.random.choice(range(256), size=3).tolist()
+                self.colors[label] = np.random.choice(
+                    range(256), size=3).tolist()
         else:
             dist = self.get_spatial_distances(boxes)
             # rows corresponds to boxes in previous boxes
@@ -92,8 +98,10 @@ class Tracker:
                 self.disappeared[label] = 0
                 used_prev_boxes.add(row)
                 used_new_boxes.add(col)
-            unused_prev_boxes = set(range(0, dist.shape[0])).difference(used_prev_boxes)
-            unused_current_boxes = set(range(0, dist.shape[1])).difference(used_new_boxes)
+            unused_prev_boxes = set(
+                range(0, dist.shape[0])).difference(used_prev_boxes)
+            unused_current_boxes = set(
+                range(0, dist.shape[1])).difference(used_new_boxes)
 
             if len(self.registered_ids) > len(boxes):
                 for index in unused_prev_boxes:
@@ -106,14 +114,16 @@ class Tracker:
             else:
                 for index in unused_current_boxes:
                     if names[index] in self.id_nums:
-                        label = names[index] + ' ' + str(self.id_nums[names[index]])
+                        label = names[index] + ' ' + \
+                            str(self.id_nums[names[index]])
                         self.id_nums[names[index]] += 1
                     else:
                         label = names[index] + ' 0'
                         self.id_nums[names[index]] = 1
                     self.registered_ids[label] = boxes[index, :]
                     self.disappeared[label] = 0
-                    self.colors[label] = np.random.choice(range(256), size=3).tolist()
+                    self.colors[label] = np.random.choice(
+                        range(256), size=3).tolist()
 
     def find_matching_object(self, frame, object_image, label=None):
         """
@@ -131,7 +141,8 @@ class Tracker:
                 x, y, w, h = self.registered_ids[name]
                 x_min, x_max = int(x - w / 2), int(x + w / 2)
                 y_min, y_max = int(y - h / 2), int(y + h / 2)
-                ssim = self.compute_ssim(frame, object_image, [x_min, y_min, x_max, y_max])
+                ssim = self.compute_ssim(frame, object_image, [
+                    x_min, y_min, x_max, y_max])
                 ssims.append(ssim)
                 names.append(name)
         if len(ssims):

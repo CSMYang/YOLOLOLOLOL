@@ -26,10 +26,12 @@ class Detector:
         """
         This function takes an image and gets the predictions
         """
-        blobs = cv2.dnn.blobFromImage(img, 1 / 255, (416, 416), (0, 0, 0), True, crop=False)
+        blobs = cv2.dnn.blobFromImage(
+            img, 1 / 255, (416, 416), (0, 0, 0), True, crop=False)
         self.yolo.setInput(blobs)
         layers = self.yolo.getLayerNames()
-        output_layers = [layers[i[0] - 1] for i in self.yolo.getUnconnectedOutLayers()]
+        output_layers = [layers[i[0] - 1]
+                         for i in self.yolo.getUnconnectedOutLayers()]
         predictions = self.yolo.forward(output_layers)
 
         return predictions
@@ -77,8 +79,10 @@ class Detector:
                 else:
                     c = color
                 cv2.rectangle(frame, (x, y), (x + w, y + h), c, 2)
-                cv2.putText(frame, name, (x, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
-                cv2.putText(frame, str(np.around(conf, 2)), (x, y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
+                cv2.putText(frame, name, (x, y - 2),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
+                cv2.putText(frame, str(np.around(conf, 2)),
+                            (x, y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
         if need_result:
             return np.array(best_boxes), best_names
 
@@ -102,10 +106,13 @@ class Detector:
                 has_frame, current_frame = video_stream.read()
                 if has_frame:
                     predictions = self.get_predictions(current_frame)
-                    self.get_boxes(current_frame, predictions, color=(0, 255, 0))
+                    self.get_boxes(current_frame, predictions,
+                                   color=(0, 255, 0))
                     t, _ = self.yolo.getPerfProfile()
-                    label = 'Current FPS is: %.2f' % (cv2.getTickFrequency() / t)
-                    cv2.putText(current_frame, label, (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+                    label = 'Current FPS is: %.2f' % (
+                        cv2.getTickFrequency() / t)
+                    cv2.putText(current_frame, label, (0, 15),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
                     cv2.imshow("", current_frame)
                 else:
                     print('End of the video reached!')
@@ -125,18 +132,21 @@ class Detector:
             has_frame, current_frame = video_stream.read()
             if has_frame:
                 predictions = self.get_predictions(current_frame)
-                boxes, names = self.get_boxes(current_frame, predictions, need_result=True, draw=False)
+                boxes, names = self.get_boxes(
+                    current_frame, predictions, need_result=True, draw=False)
                 tracker.update(boxes, names)
                 for label in tracker.registered_ids:
                     x, y, w, h = tracker.registered_ids[label]
                     c = tracker.colors[label]
                     cv2.rectangle(current_frame, (int(x - w / 2), int(y - h / 2)),
                                   (int(x + w / 2), int(y + h / 2)), c, 2)
-                    cv2.putText(current_frame, label, (x, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
+                    cv2.putText(current_frame, label, (x, y - 2),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
 
                 t, _ = self.yolo.getPerfProfile()
                 label = 'Current FPS is: %.2f' % (cv2.getTickFrequency() / t)
-                cv2.putText(current_frame, label, (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+                cv2.putText(current_frame, label, (0, 15),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
                 cv2.imshow("", current_frame)
             else:
                 print('End of the video reached!')
@@ -150,19 +160,30 @@ class Detector:
         video_stream = cv2.VideoCapture(video_name)
         tracker = Tracker()
         found = False
+        Deleted = False
+        object_image = cv2.imread(object_image)
         while cv2.waitKey(1) < 0:
             has_frame, current_frame = video_stream.read()
             if has_frame:
+                current_frame = cv2.rotate(
+                    current_frame, cv2.ROTATE_90_CLOCKWISE)
                 predictions = self.get_predictions(current_frame)
-                boxes, names = self.get_boxes(current_frame, predictions, need_result=True, draw=False)
+                boxes, names = self.get_boxes(
+                    current_frame, predictions, need_result=True, draw=False)
                 tracker.update(boxes, names)
                 if not found:
-                    class_name, found = tracker.find_matching_object(current_frame, object_image, class_name)
+                    class_name, found = tracker.find_matching_object(
+                        current_frame, object_image, class_name)
                 if found:
-                    box = tracker.registered_ids[class_name]
-                    del tracker.registered_ids[class_name]
-                    del tracker.disappeared[class_name]
-                    del tracker.colors[class_name]
+                    if found and not Deleted:
+                        box = tracker.registered_ids[class_name]
+                        del tracker.registered_ids[class_name]
+                        del tracker.disappeared[class_name]
+                        del tracker.colors[class_name]
+                        tracker.registered_ids['Target found!'] = box
+                        tracker.disappeared['Target found!'] = 0
+                        tracker.colors['Target found!'] = [0, 0, 255]
+                        Deleted = True
                     tracker.registered_ids['Target found!'] = box
                     tracker.disappeared['Target found!'] = 0
                     tracker.colors['Target found!'] = [0, 0, 255]
@@ -171,11 +192,13 @@ class Detector:
                     c = tracker.colors[label]
                     cv2.rectangle(current_frame, (int(x - w / 2), int(y - h / 2)),
                                   (int(x + w / 2), int(y + h / 2)), c, 2)
-                    cv2.putText(current_frame, label, (x, y - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
+                    cv2.putText(current_frame, label, (x, y - 2),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
 
                 t, _ = self.yolo.getPerfProfile()
                 label = 'Current FPS is: %.2f' % (cv2.getTickFrequency() / t)
-                cv2.putText(current_frame, label, (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+                cv2.putText(current_frame, label, (0, 15),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
                 cv2.imshow("", current_frame)
             else:
                 print('End of the video reached!')
@@ -187,4 +210,5 @@ if __name__ == '__main__':
     detector = Detector()
     detector.detect('p12.jpg')
     # detector.detect(None, True, True)
-    detector.track_everything()
+    detector.track_specific_image("testing.mp4", "Capture.PNG")
+    # detector.track_everything()
