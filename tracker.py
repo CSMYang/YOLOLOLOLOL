@@ -130,7 +130,7 @@ class Tracker:
         This function tries to find the object from a frame of current video.
         """
         if len(self.registered_ids) == 0:
-            return [], False
+            return None, False
         found = False
         if label is not None:
             n = len(label)
@@ -150,4 +150,4 @@ class Tracker:
             if ssims[index] > 0.5:
                 found = True
             return names[index], found
-        return [], False
+        return None, False

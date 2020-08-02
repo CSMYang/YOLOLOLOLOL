@@ -174,16 +174,15 @@ class Detector:
                 if not found:
                     class_name, found = tracker.find_matching_object(
                         current_frame, object_image, class_name)
-                if found:
-                    if not Deleted:
-                        box = tracker.registered_ids[class_name]
-                        del tracker.registered_ids[class_name]
-                        del tracker.disappeared[class_name]
-                        del tracker.colors[class_name]
-                        tracker.registered_ids['Target found!'] = box
-                        tracker.disappeared['Target found!'] = 0
-                        tracker.colors['Target found!'] = [0, 0, 255]
-                        Deleted = True
+                if found and not Deleted:
+                    box = tracker.registered_ids[class_name]
+                    del tracker.registered_ids[class_name]
+                    del tracker.disappeared[class_name]
+                    del tracker.colors[class_name]
+                    tracker.registered_ids['Target found!'] = box
+                    tracker.disappeared['Target found!'] = 0
+                    tracker.colors['Target found!'] = [0, 0, 255]
+                    Deleted = True
                 for label in tracker.registered_ids:
                     x, y, w, h = tracker.registered_ids[label]
                     c = tracker.colors[label]
