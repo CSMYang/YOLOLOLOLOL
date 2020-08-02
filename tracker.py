@@ -41,6 +41,35 @@ class Tracker:
                                      gaussian_weights=self.ssim_gaussian, sigma=self.ssim_sigma)
         return ssim
 
+    def find_similar_point(self, frame, template, levels=1, sim_thresh=0.8):
+        """
+        This function takes a frame and a template, and tries to find the point
+        at where these two images are most similar.
+        Levels refer to how many extra levels in scale space needs to be
+        included.
+        """
+        frame_edge = cv2.Canny(frame, 50, 200)
+        template_edge = cv2.Canny(template, 50, 200)
+        end_point = 0.25 * levels
+        ratios = np.linspace(1 - end_point, end_point + 1, num=2 * levels + 1)
+        width, height = template_edge.shape[1], template_edge.shape[0]
+        values = []
+        locations = []
+        for r in ratios:
+            template_edge = cv2.resize(template_edge, (width * r, height * r))
+            result = cv2.matchTemplate(frame_edge, template_edge, cv2.TM_CCOEFF_NORMED)
+            _, max_val, _, max_loc = cv2.minMaxLoc(result)
+            if max_val > sim_thresh:
+                values.append(max_val)
+                x, y = max_loc[0], max_loc[1]
+                x = int(x + width * r / 2)
+                y = int(y + height * r / 2)
+                locations.append((x, y))
+        if len(values) == 0:
+            return None, False
+        index = np.argmax(values)
+        return locations[index], True
+
     def get_spatial_distances(self, boxes):
         """
         This function takes an array of boxes and returns an array of spatial distances
@@ -125,29 +154,37 @@ class Tracker:
                     self.colors[label] = np.random.choice(
                         range(256), size=3).tolist()
 
-    def find_matching_object(self, frame, object_image, ssim_thresh=0.5, label=None):
+    def find_matching_object(self, frame, object_image, levels=1, sim_thresh=0.8, label=None):
         """
         This function tries to find the object from a frame of current video.
         """
         if len(self.registered_ids) == 0:
             return None, False
-        found = False
         if label is not None:
             n = len(label)
-        ssims = []
-        names = []
-        for name in self.registered_ids:
-            if label is None or name[:n] == label:
-                x, y, w, h = self.registered_ids[name]
-                x_min, x_max = int(x - w / 2), int(x + w / 2)
-                y_min, y_max = int(y - h / 2), int(y + h / 2)
-                ssim = self.compute_ssim(frame, object_image, [
-                    x_min, y_min, x_max, y_max])
-                ssims.append(ssim)
-                names.append(name)
-        if len(ssims):
-            index = np.argmax(ssims)
-            if ssims[index] > ssim_thresh:
-                found = True
-            return names[index], found
-        return None, False
+        location, found = self.find_similar_point(frame, object_image,
+                                                  levels, sim_thresh)
+        if not found:
+            return None, False
+        location = np.array([location])
+        dists = self.get_spatial_distances(location).flatten()
+        index = np.argmin(dists)
+        name = list(self.registered_ids.keys())[index]
+        return name, True
+
+        # ssims = []
+        # names = []
+        # for name in self.registered_ids:
+        #     if label is None or name[:n] == label:
+        #         x, y, w, h = self.registered_ids[name]
+        #         x_min, x_max = int(x - w / 2), int(x + w / 2)
+        #         y_min, y_max = int(y - h / 2), int(y + h / 2)
+        #         ssim = self.compute_ssim(frame, object_image, [
+        #             x_min, y_min, x_max, y_max])
+        #         ssims.append(ssim)
+        #         names.append(name)
+        # if len(ssims):
+        #     index = np.argmax(ssims)
+        #     if ssims[index] > ssim_thresh:
+        #         return names[index], True
+        # return None, False

@@ -154,7 +154,7 @@ class Detector:
                 break
 
     def track_specific_image(self, video_name, object_image, class_name=None,
-                             max_disp=3, ssim_thresh=0.5):
+                             max_disp=1, ssim_thresh=0.8):
         """
         This function tracks to find a provided object from the video and track it.
         """
@@ -204,8 +204,8 @@ class Detector:
 
 
 if __name__ == '__main__':
-    detector = Detector()
+    detector = Detector(cuda=True)
     detector.detect('p12.jpg')
     # detector.detect(None, True, True)
-    detector.track_specific_image("testing.mp4", "Capture.PNG", class_name='cup', max_disp=1)
+    detector.track_specific_image("testing.mp4", "Capture.PNG", max_disp=1)
     # detector.track_everything()
