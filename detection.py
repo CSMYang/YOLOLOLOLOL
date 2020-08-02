@@ -72,6 +72,7 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
                 box_coords = torch.Tensor(4, device=DEVICE)
                 box_coords[:2] = xy_coord - 0.5 * box[2:]
                 box_coords[2:] = xy_coord + 0.5 * box[2:]
+                box_coords[box_coords < 0] = 0
 
                 # labels = torch.cat((labels, torch.Tensor([label], device=DEVICE)))
                 # # print("labels:{}".format(labels))
