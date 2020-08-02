@@ -6,12 +6,13 @@ import torchvision.transforms as transforms
 import numpy as np
 import cv2
 from yolo import YoloNet
+from torch.autograd import Variable
 import matplotlib.pyplot as plt
 
 # Global variables
 CONFID = 0.1
 PROB = 0.1
-NMS = 0.5
+NMS = 0.35
 IMG_WIDTH = 448
 IMG_HEIGHT = 448
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -33,11 +34,20 @@ def preprocess_img(img, width=IMG_WIDTH, height=IMG_HEIGHT):
     """
     x, y, _ = img.shape
     new_img = cv2.resize(img, (width, height), interpolation=cv2.INTER_LINEAR)
-    result = torch.zeros(1, 3, height, width, device=DEVICE)
-    # print(transforms.ToTensor()(new_img).shape)
-    result[0, :, :, :] = transforms.ToTensor()(new_img)
-    # result = result.cuda() if torch.cuda.is_available() else result
-    return result
+    # result = torch.zeros(1, 3, height, width, device=DEVICE)
+    # # print(transforms.ToTensor()(new_img).shape)
+    # result[0, :, :, :] = transforms.ToTensor()(new_img)
+    # # result = result.cuda() if torch.cuda.is_available() else result
+    # return result
+    mean = [122.67891434, 116.66876762, 104.00698793]
+    mean = np.array(mean, dtype=np.float32)
+    # mean = [122, 116, 104]
+    new_img = cv2.cvtColor(new_img, cv2.COLOR_BGR2RGB)
+    new_img = (new_img - mean) / 255
+    new_img = transforms.ToTensor()(new_img)
+    new_img = new_img[None, :, :, :]
+    new_img = Variable(new_img)
+    return new_img
 
 
 def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
@@ -54,6 +64,9 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
     # labels, confidences, scores, boxes = torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), \
     #                                      torch.Tensor(0, device=DEVICE), torch.Tensor(0, 4, device=DEVICE)
     labels, confidences, scores, boxes = [], [], [], []
+    # confidence = yolo_output[:, :, 4].unsqueeze(2)
+    # for b in range(1, box_num):
+    #     confidence = torch.cat((confidence, yolo_output[:, :, 5 * box_num + 4].unsqueeze(2)), 2)
     for i in range(side):
         for j in range(side):
             # print(j, i, box_num)
@@ -85,8 +98,10 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
                 scores.append(score)
                 boxes.append(box_coords)
     print("finish for loop (get_prediction)")
-    # print(boxes)
-
+    print(labels, boxes)
+    if len(labels) == 0:
+        return torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), \
+               torch.Tensor(0, 4, device=DEVICE)
     labels, confidences, scores, boxes = torch.stack(labels, 0), torch.stack(confidences, 0), \
                                          torch.stack(scores, 0), torch.stack(boxes, 0)
 
@@ -178,7 +193,9 @@ def non_maximum_supression3(labels, confidences, scores, boxes, confidence=CONFI
     Removes detections with lower object confidence score than confidence.
     :return: A list of tuples including class label, score, confidence, and two box coordinates.
     """
-
+    if labels.shape[0] == 0:
+        return torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), \
+               torch.Tensor(0, 4, device=DEVICE)
     indexs = cv2.dnn.NMSBoxes(boxes.tolist(), confidences.tolist(), confidence, nms)
     print("finish nms")
     new_labels, new_confidences, new_scores, new_boxes = [], [], [], []
@@ -251,7 +268,10 @@ def detect2(yolonet, img, classes):
     height, width, _ = img.shape
     box_num = int(yolonet.detection_param['num'])
     side = int(yolonet.detection_param['side'])
-    labels, confidences, scores, boxes = get_prediction_from_yolo(yolonet(img_input).squeeze(0), side, box_num)
+    with torch.no_grad():
+        yolo_output = yolonet(img_input)
+    yolo_output = yolo_output.cpu().data.squeeze(0)
+    labels, confidences, scores, boxes = get_prediction_from_yolo(yolo_output, side, box_num)
     # labels, confidences, scores, boxes = get_prediction_from_yolo(predictions, side, box_num)
     # NMS
     labels_nms, confidences_nms, scores_nms, boxes_nms = non_maximum_supression3(labels, confidences, scores, boxes)
@@ -290,17 +310,18 @@ def draw_boxes(img, boxes, color=(0, 255, 0)):
 
 if __name__ == "__main__":
     # Get classes
-    classes = get_classes("./voc.names")
+    classes = get_classes("./data/processed_data/VOC2007_class_label.txt")
     class_num = len(classes)
 
     # Detect Object
-    img_path = "./p12.jpg"
+    img_path = "./000844.jpg"
     config_path = "./cfg/yolov1.cfg"
     weight_path = "data\\training_result\\best_state.pth"
     img = cv2.imread(img_path)
     # print(img.shape)
     yolo = YoloNet(config_path)
-    # yolo.load_state_dict(torch.load(weight_path))
+    yolo.load_state_dict(torch.load(weight_path, map_location=DEVICE))
+    yolo.eval()
     # result = detect(yolo, img, class_num)
     result = detect2(yolo, img, classes)
     print(result)
