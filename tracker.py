@@ -122,7 +122,7 @@ class Tracker:
         if len(self.registered_ids) == 0:
             return [], False
         found = False
-        if label:
+        if label is not None:
             n = len(label)
         ssims = []
         names = []
