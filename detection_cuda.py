@@ -34,20 +34,20 @@ def preprocess_img(img, width=IMG_WIDTH, height=IMG_HEIGHT):
     """
     x, y, _ = img.shape
     new_img = cv2.resize(img, (width, height), interpolation=cv2.INTER_LINEAR)
-    # result = torch.zeros(1, 3, height, width, device=DEVICE)
-    # # print(transforms.ToTensor()(new_img).shape)
-    # result[0, :, :, :] = transforms.ToTensor()(new_img)
-    # # result = result.cuda() if torch.cuda.is_available() else result
-    # return result
-    mean = [122.67891434, 116.66876762, 104.00698793]
-    mean = np.array(mean, dtype=np.float32)
-    # mean = [122, 116, 104]
-    new_img = cv2.cvtColor(new_img, cv2.COLOR_BGR2RGB)
-    new_img = (new_img - mean) / 255
-    new_img = transforms.ToTensor()(new_img)
-    new_img = new_img[None, :, :, :]
-    new_img = Variable(new_img)
-    return new_img
+    result = torch.zeros(1, 3, height, width, device=DEVICE)
+    # print(transforms.ToTensor()(new_img).shape)
+    result[0, :, :, :] = transforms.ToTensor()(new_img)
+    # result = result.cuda() if torch.cuda.is_available() else result
+    return result
+    # mean = [122.67891434, 116.66876762, 104.00698793]
+    # mean = np.array(mean, dtype=np.float32)
+    # # mean = [122, 116, 104]
+    # new_img = cv2.cvtColor(new_img, cv2.COLOR_BGR2RGB)
+    # new_img = (new_img - mean) / 255
+    # new_img = transforms.ToTensor()(new_img)
+    # new_img = new_img[None, :, :, :]
+    # new_img = Variable(new_img)
+    # return new_img
 
 
 def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
