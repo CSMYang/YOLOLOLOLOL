@@ -180,7 +180,7 @@ def non_maximum_supression3(labels, confidences, scores, boxes, confidence=CONFI
     """
 
     indexs = cv2.dnn.NMSBoxes(boxes.tolist(), confidences.tolist(), confidence, nms)
-    print("got indices")
+    print("finish nms")
     new_labels, new_confidences, new_scores, new_boxes = [], [], [], []
 
     for i in indexs:
@@ -237,7 +237,7 @@ def detect(yolonet, img, class_num, width=IMG_WIDTH, height=IMG_HEIGHT):
     return detect
 
 
-def detect2(yolonet, img, classes, width=IMG_WIDTH, height=IMG_HEIGHT):
+def detect2(yolonet, img, classes):
     """
     Detect objects from the given img.
     :param yolonet: The trained Yolo model.
@@ -248,6 +248,7 @@ def detect2(yolonet, img, classes, width=IMG_WIDTH, height=IMG_HEIGHT):
     :return: A list of tuples including class label, score*confidence, and two box coordinates.
     """
     img_input = preprocess_img(img)
+    height, width, _ = img.shape
     box_num = int(yolonet.detection_param['num'])
     side = int(yolonet.detection_param['side'])
     labels, confidences, scores, boxes = get_prediction_from_yolo(yolonet(img_input).squeeze(0), side, box_num)
