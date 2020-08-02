@@ -67,7 +67,8 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
                     continue
 
                 box = yolo_output[j, i, 5 * b: 5 * b + 4]
-                xy_coord = box[:2] * float(side) + torch.Tensor([i, j], device=DEVICE) / float(side)
+                # print(box)
+                xy_coord = box[:2] / float(side) + torch.Tensor([i, j], device=DEVICE) / float(side)
                 box_coords = torch.Tensor(4, device=DEVICE)
                 box_coords[:2] = xy_coord - 0.5 * box[2:]
                 box_coords[2:] = xy_coord + 0.5 * box[2:]
@@ -83,6 +84,7 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
                 scores.append(score)
                 boxes.append(box_coords)
     print("finish for loop (get_prediction)")
+    # print(boxes)
 
     labels, confidences, scores, boxes = torch.stack(labels, 0), torch.stack(confidences, 0), \
                                          torch.stack(scores, 0), torch.stack(boxes, 0)
@@ -298,6 +300,7 @@ if __name__ == "__main__":
     # yolo.load_state_dict(torch.load(weight_path))
     # result = detect(yolo, img, class_num)
     result = detect2(yolo, img, classes)
+    print(result)
 
     # result = [("car", 0.1, (120, 120), (190, 190))]
 
