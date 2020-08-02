@@ -153,12 +153,12 @@ class Detector:
                 cv2.waitKey(100)
                 break
 
-    def track_specific_image(self, video_name, object_image, class_name=None):
+    def track_specific_image(self, video_name, object_image, class_name=None, max_disp=3):
         """
         This function tracks to find a provided object from the video and track it.
         """
         video_stream = cv2.VideoCapture(video_name)
-        tracker = Tracker()
+        tracker = Tracker(dis_count=max_disp)
         found = False
         Deleted = False
         object_image = cv2.imread(object_image)
@@ -206,5 +206,5 @@ if __name__ == '__main__':
     detector = Detector()
     detector.detect('p12.jpg')
     # detector.detect(None, True, True)
-    detector.track_specific_image("testing.mp4", "Capture.PNG")
+    detector.track_specific_image("testing.mp4", "Capture.PNG", max_disp=3)
     # detector.track_everything()
