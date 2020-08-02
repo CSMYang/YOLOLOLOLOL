@@ -69,6 +69,7 @@ class LossGetter(nn.Module):
         :param true_labels: A set of N true results. Each true label has the same shape as above
         :return: A scalar of loss.
         """
+
         label_length = self.C + self.B * 5
 
         # Initialize corresponding masks for selecting predictions
@@ -94,9 +95,9 @@ class LossGetter(nn.Module):
         # Compute the loss for predictions with objects
         ious = torch.zeros(true_box.size()).cuda()
         responsibility_mask = torch.zeros(
-            true_box.size()).type(torch.ByteTensor).cuda()
+            true_box.size()).type(torch.BoolTensor).cuda()
         responsibility_mask_no_obj = torch.ones(
-            true_box.size()).type(torch.ByteTensor).cuda()
+            true_box.size()).type(torch.BoolTensor).cuda()
         for i in range(0, true_box.size(0), self.B):
             predicted_boxes = pred_box[i: i + self.B]
             pred_coordinates = torch.zeros((predicted_boxes.size()[0], 4),
@@ -126,13 +127,13 @@ class LossGetter(nn.Module):
         coord_loss = F.mse_loss(
             pred_resp[:, :2], true_resp[:, :2], reduction='sum')
 
-        A = pred_resp[:, 2:4]
-        A[A < 0] = 0
-        pred_resp[:, 2:4] = A
+        # A = pred_resp[:, 2:4]
+        # A[A < 0] = 0
+        # pred_resp[:, 2:4] = A
 
-        A = true_resp[:, 2:4]
-        A[A < 0] = 0
-        true_resp[:, 2:4] = A
+        # A = true_resp[:, 2:4]
+        # A[A < 0] = 0
+        # true_resp[:, 2:4] = A
 
         dimension_loss = F.mse_loss(
             torch.sqrt(pred_resp[:, 2:4]), torch.sqrt(true_resp[:, 2:4]), reduction='sum')
@@ -143,7 +144,7 @@ class LossGetter(nn.Module):
         n_pred = prediction[n_mask].view(-1, label_length)
         n_true = true_labels[n_mask].view(-1, label_length)
         initial_n_conf_mask = torch.zeros(
-            n_pred.size()).type(torch.ByteTensor).cuda()
+            n_pred.size()).type(torch.BoolTensor).cuda()
         for i in range(self.B):
             initial_n_conf_mask[:, 4 + i * 5] = 1
         predicted_confidence = n_pred[initial_n_conf_mask]

@@ -86,12 +86,12 @@ if __name__ == "__main__":
     Loss_function = LossGetter()
 
     # initial hyper parmater
-    init_lr = 0.001
+    init_lr = 3e-4
     base_lr = 0.01
     momentum = 0.9
     weight_decay = 5.0e-4
-    training_cycle = 10
-    batch_size = 30
+    training_cycle = 1000
+    batch_size = 10
     S = 7
     C = 20
     B = 3
@@ -115,30 +115,35 @@ if __name__ == "__main__":
     for x in class_file:
         class_list.append(x.strip())
     warnings.filterwarnings("ignore", category=UserWarning)
+    warnings.filterwarnings("ignore", category=Warning)
     print(class_list)
+    best_loss = 0
     for iteration in range(training_cycle):
         # trianing
+
         print("iteration {} started".format(iteration))
         yolo.train()
         total_training_loss = 0
         # https://pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html
         for i, dataset in enumerate(Train_loader):
-            gc.collect()
-            torch.cuda.empty_cache()
+            # gc.collect()
+            # torch.cuda.empty_cache()
             img = dataset[0]
             target = dataset[1]
-            img = img.cuda()
-            target = target.cuda()
+            img = Variable(img).cuda()
+            target = Variable(target).cuda()
             # might want to update learning rate, but for now just leave it to see if it works or not
-            optimizer.zero_grad()
-            prediction = yolo.forward(img, True).cuda()
-            del img
-            loss = Loss_function.forward(prediction, target)
-            del target
+            prediction = yolo(img, True).cuda()
 
+            loss = Loss_function(prediction, target).cuda()
+            loss_value = loss.item()
+            total_training_loss += loss_value
+
+            optimizer.zero_grad()
+            loss.backward()
             optimizer.step()
-            total_training_loss += loss.item()
-            del loss, prediction
+
+            del loss, prediction, loss_value, img, target
             if i % 50 == 0:
                 # if device.type == 'cuda':
                 #     print(torch.cuda.get_device_name(0))
@@ -151,7 +156,6 @@ if __name__ == "__main__":
 
         # validation
         total_val_loss = 0
-        best_loss = 0
         for i, dataset in enumerate(Validation_loader):
             img = dataset[0]
             target = dataset[1]
@@ -159,9 +163,9 @@ if __name__ == "__main__":
             img = img.cuda()
             target = target.cuda()
             with torch.no_grad():
-                prediction = yolo.forward(img).cuda()
+                prediction = yolo(img).cuda()
 
-                val_loss = Loss_function.forward(prediction, target)
+                val_loss = Loss_function(prediction, target).cuda()
 
             total_val_loss += val_loss.item()
             del img, target, prediction, val_loss
@@ -173,5 +177,7 @@ if __name__ == "__main__":
             best_iteration = iteration
             torch.save(yolo.state_dict(),
                        "data\\training_result\\best_state.pth")
-        print("iteration {} ended".format(iteration))
+            print("replaced at {}".format(iteration))
+        print("iteration {} ended".format(iteration),
+              total_val_loss, best_loss)
     print(best_iteration)

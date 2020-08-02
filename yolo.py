@@ -21,6 +21,7 @@ class Local(nn.Module):
     Construct a local layer for YOLO CNN.
     https://discuss.pytorch.org/t/locally-connected-layers/26979/2
     """
+
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
         super(Local, self).__init__()
         self.kernel_size = kernel_size
@@ -28,7 +29,8 @@ class Local(nn.Module):
         self.padding = padding
 
         fold_num = (in_channels + 2 * padding - kernel_size) // stride + 1
-        self.weight = nn.Parameter(torch.randn(fold_num, kernel_size, out_channels))
+        self.weight = nn.Parameter(torch.randn(
+            fold_num, kernel_size, out_channels))
 
     def forward(self, x):
         """
@@ -155,17 +157,19 @@ def build_yolonet(module_params):
             stride = int(layer['stride'])
             # pad = int(layer['pad'])
             pad = (kernel - 1) // 2
-            bn = int(layer['batch_normalize']) if "batch_normalize" in layer else 0
+            bn = int(layer['batch_normalize']
+                     ) if "batch_normalize" in layer else 0
             # print(type(kernel), type(out_channel), type(stride), type(pad), type(bn))
 
             conv_layer = nn.Conv2d(in_channels=channels[-1], out_channels=out_channel,
                                    kernel_size=kernel, stride=stride, padding=pad, bias=not bn)
             module.add_module("conv_layer_{}".format(i), conv_layer)
             if bn:
-                batch_norm = nn.BatchNorm2d(num_features=out_channel, momentum=momentum)
+                batch_norm = nn.BatchNorm2d(
+                    num_features=out_channel, momentum=momentum)
                 module.add_module("batch_norm_{}".format(i), batch_norm)
             if "activation" in layer and layer["activation"] == "leaky":
-                leaky = nn.LeakyReLU(negative_slope=0.1, inplace=True)
+                leaky = nn.LeakyReLU(negative_slope=0.1, inplace=False)
                 module.add_module("leaky_relu_{}".format(i), leaky)
             # update channels
             channels.append(out_channel)
@@ -182,15 +186,17 @@ def build_yolonet(module_params):
             kernel = int(layer['size'])
             stride = int(layer['stride'])
             pad = int(layer['pad'])
-            out_channel = int(layer['filters']) * (kernel + pad) * (kernel + pad)
+            out_channel = int(layer['filters']) * \
+                (kernel + pad) * (kernel + pad)
 
             # local_layer = Local(in_channels=channels[-1], out_channels=out_channel,
             #                        kernel_size=kernel, stride=stride, padding=pad)
             module.add_module("Flatten_{}".format(i), Flatten())
-            local_layer = nn.Linear(in_features=(7 * 7 * channels[-1]), out_features=out_channel)
+            local_layer = nn.Linear(in_features=(
+                7 * 7 * channels[-1]), out_features=out_channel)
             module.add_module("local_layer_{}".format(i), local_layer)
             if "activation" in layer and layer["activation"] == "leaky":
-                leaky = nn.LeakyReLU(negative_slope=0.1, inplace=True)
+                leaky = nn.LeakyReLU(negative_slope=0.1, inplace=False)
                 module.add_module("leaky_relu_{}".format(i), leaky)
             # update channels
             channels.append(out_channel)
@@ -198,20 +204,21 @@ def build_yolonet(module_params):
         # dropout
         elif layer_type == "dropout":
             prob = float(layer['probability'])
-            dropout = nn.Dropout(p=prob, inplace=True)
+            dropout = nn.Dropout(p=prob, inplace=False)
             module.add_module("dropout_{}".format(i), dropout)
 
         # connection layer
         elif layer_type == "connected":
             out_channel = int(layer['output'])
             if "activation" in layer and layer["activation"] == "linear":
-                linear = nn.Linear(in_features=channels[-1], out_features=out_channel)
+                linear = nn.Linear(
+                    in_features=channels[-1], out_features=out_channel)
                 module.add_module("linear_{}".format(i), linear)
             sigmoid_layer = nn.Sigmoid()
             module.add_module("sigmoid_{}".format(i), sigmoid_layer)
 
         # # detection
-        elif layer_type == "detection": # like yolo layer in yolo-v3
+        elif layer_type == "detection":  # like yolo layer in yolo-v3
             continue
             # classes = int(layer['classes'])
             # coords = int(layer['coords'])
@@ -238,10 +245,12 @@ class YoloNet(nn.Module):
     """
     YOLO v1 model.
     """
+
     def __init__(self, config_file):
         super(YoloNet, self).__init__()
         self.module_params = get_model_from_config(config_file)
-        self.hyperparams, self.detection_param, self.m = build_yolonet(self.module_params)
+        self.hyperparams, self.detection_param, self.m = build_yolonet(
+            self.module_params)
         # print(type(self.m), type(self.hyperparams), type(self.detection_param))
         # print(self.modules)
         self.header = torch.zeros(1, 5, dtype=torch.int32)
