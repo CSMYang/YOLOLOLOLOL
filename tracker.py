@@ -56,8 +56,10 @@ class Tracker:
         values = []
         locations = []
         for r in ratios:
-            template_edge = cv2.resize(template_edge, (width * r, height * r))
-            result = cv2.matchTemplate(frame_edge, template_edge, cv2.TM_CCOEFF_NORMED)
+            template_edge = cv2.resize(
+                template_edge, (int(width * r), int(height * r)))
+            result = cv2.matchTemplate(
+                frame_edge, template_edge, cv2.TM_CCOEFF_NORMED)
             _, max_val, _, max_loc = cv2.minMaxLoc(result)
             if max_val > sim_thresh:
                 values.append(max_val)
@@ -88,7 +90,7 @@ class Tracker:
         #         elif matches[tuple(matched_box)][1] > dist[best_index]:
         #             matches[tuple(matched_box)] = (box, dist[best_index])
         coords = boxes[:2]
-        dist = distance.cdist(prev_box_coords, coords)
+        dist = distance.cdist(prev_box_coords[:, :2], coords[:, :2])
         return dist
 
     def update(self, boxes, names):
