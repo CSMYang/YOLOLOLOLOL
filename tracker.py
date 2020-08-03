@@ -10,7 +10,7 @@ class Tracker:
     This class tracks the objects from videos
     """
 
-    def __init__(self, distance_threshold=30, ssim_gaussian=True, ssim_sigma=1.5, dis_count=3):
+    def __init__(self, distance_threshold=30, ssim_gaussian=True, ssim_sigma=1.5, dis_count=0):
         """
         This function initializes a tracker.
         """
