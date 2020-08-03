@@ -34,7 +34,7 @@ def preprocess_img(img, width=IMG_WIDTH, height=IMG_HEIGHT):
     """
     x, y, _ = img.shape
     new_img = cv2.resize(img, (width, height), interpolation=cv2.INTER_LINEAR)
-    result = torch.zeros(1, 3, height, width, device=DEVICE)
+    result = torch.zeros(1, 3, height, width).cuda()
     # print(transforms.ToTensor()(new_img).shape)
     result[0, :, :, :] = transforms.ToTensor()(new_img)
     # result = result.cuda() if torch.cuda.is_available() else result
@@ -76,7 +76,7 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
             for b in range(box_num):
                 confidence = yolo_output[j, i, 5 * b + 4]
                 print(confidence)
-                if float(confidence * score) < prob:
+                if float(score) < prob and confidence != 0:
                     continue
 
                 box = yolo_output[j, i, 5 * b: 5 * b + 4]
@@ -194,25 +194,32 @@ def non_maximum_supression3(labels, confidences, scores, boxes, confidence=CONFI
     Removes detections with lower object confidence score than confidence.
     :return: A list of tuples including class label, score, confidence, and two box coordinates.
     """
-    if labels.shape[0] == 0:
-        return torch.Tensor(0).cuda(), torch.Tensor(0).cuda(), torch.Tensor(0).cuda(), \
-            torch.Tensor(0, 4).cuda()
+    # if labels.shape[0] == 0:
+    #     return torch.Tensor(0).cuda(), torch.Tensor(0).cuda(), torch.Tensor(0).cuda(), \
+    #         torch.Tensor(0, 4).cuda()
     indexs = cv2.dnn.NMSBoxes(
         boxes.tolist(), confidences.tolist(), 0.1, nms)
     print("finish nms")
-    new_labels, new_confidences, new_scores, new_boxes = [], [], [], []
+    if len(indexs) == 0:
+        return torch.Tensor(0).cuda(), torch.Tensor(0).cuda(), \
+               torch.Tensor(0, 4).cuda()
+    # new_labels, new_confidences, new_scores, new_boxes = [], [], [], []
+    new_labels, new_scores, new_boxes = [], [], []
 
     for i in indexs:
         new_labels.append(labels[i])
-        new_confidences.append(confidences[i])
+        # new_confidences.append(confidences[i])
         new_scores.append(scores[i])
         new_boxes.append(boxes[i])
         # print(boxes[i].shape)
 
-    new_labels, new_confidences, new_scores, new_boxes = torch.stack(new_labels, 0).reshape((len(new_labels))), \
-        torch.stack(new_confidences, 0).reshape((len(new_confidences))), \
-        torch.stack(new_scores, 0).reshape((len(new_scores))), \
-        torch.stack(new_boxes, 0).reshape((len(new_boxes), 4))
+    # new_labels, new_confidences, new_scores, new_boxes = torch.stack(new_labels, 0).reshape((len(new_labels))), \
+    #     torch.stack(new_confidences, 0).reshape((len(new_confidences))), \
+    #     torch.stack(new_scores, 0).reshape((len(new_scores))), \
+    #     torch.stack(new_boxes, 0).reshape((len(new_boxes), 4))
+    new_labels, new_scores, new_boxes = torch.stack(new_labels, 0).reshape((len(new_labels))), \
+                                        torch.stack(new_scores, 0).reshape((len(new_scores))), \
+                                        torch.stack(new_boxes, 0).reshape((len(new_boxes), 4))
     # print(new_labels, new_confidences, new_scores, new_boxes)
     return new_labels, new_confidences, new_scores, new_boxes
 
@@ -280,14 +287,13 @@ def detect2(yolonet, img, classes):
         yolo_output, side, box_num)
     # labels, confidences, scores, boxes = get_prediction_from_yolo(predictions, side, box_num)
     # NMS
-    labels_nms, confidences_nms, scores_nms, boxes_nms = non_maximum_supression3(
+    labels_nms, scores_nms, boxes_nms = non_maximum_supression3(
         labels, confidences, scores, boxes)
 
     # Reformat the result as a list of tuple.
     detect = []
     for i in range(labels_nms.size(0)):
-        label, prob, box = classes[labels_nms[i]
-                                   ], confidences_nms[i] * scores_nms[i], boxes_nms[i]
+        label, prob, box = classes[labels_nms[i]], scores_nms[i], boxes_nms[i]
 
         x1, y1, x2, y2 = width * box[0], height * \
             box[1], width * box[2], height * box[3]
@@ -307,12 +313,15 @@ def draw_boxes(img, boxes, color=(0, 255, 0)):
         label, prob, bc1, bc2 = b
         # print("coordinates: {}, {}".format(bc1, bc2))
         cv2.rectangle(img_out, bc1, bc2, color=color, thickness=3)
-        name = "{}, prob:{}".format(label, round(float(prob), 2))
+        name = "{} p:{}".format(label, round(float(prob), 2))
         # size, base = cv2.getTextSize(name, cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.5, thickness=1)
         # tc2 = (bc1[0] + size[0] + 1, bc1[1] + size[1] + base + 1)
         # cv2.rectangle(img_out, bc1, tc2, color=color)
-        cv2.putText(img_out, name, ((bc1[0] + bc1[0]) // 2, (bc1[1] + bc2[1]) // 2), cv2.FONT_HERSHEY_SIMPLEX, fontScale=0.75,
-                    color=(255, 255, 255), thickness=1, lineType=8)
+        cv2.putText(img_out, name, ((bc1[0] + bc2[0]) // 3, (bc1[1] + bc2[1]) // 2), cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.75,
+                    color=(255, 255, 255), thickness=2, lineType=8)
+        # cv2.putText(img_out, name, ((bc1[0] + bc1[0]) // 2, (bc1[1] + bc2[1]) // 2),
+        #             cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
 
     return img_out
 
@@ -339,7 +348,8 @@ if __name__ == "__main__":
     # result = [("car", 0.1, (120, 120), (190, 190))]
 
     # Draw boxes
-    img_out = draw_boxes(img, result)
-    img_plt_out = cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
-    plt.imshow(img_plt_out)
-    plt.show()
+    if len(result) > 0:
+        img_out = draw_boxes(img, result)
+        img_plt_out = cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
+        plt.imshow(img_plt_out)
+        plt.show()
