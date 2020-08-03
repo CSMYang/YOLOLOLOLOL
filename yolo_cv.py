@@ -193,7 +193,7 @@ class Detector:
                     cv2.putText(current_frame, label, (x, y - 2),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
 
-                time_spent = start_time - time.perf_counter()
+                time_spent = time.perf_counter() - start_time
                 label = 'Current FPS is: %.2f' % (1 / time_spent)
                 cv2.putText(current_frame, label, (0, 15),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
