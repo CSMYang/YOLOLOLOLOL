@@ -50,7 +50,7 @@ class Tracker:
         """
         end_point = 0.25 * levels
         ratios = np.linspace(1 - end_point, end_point + 1, num=2 * levels + 1)
-        height, width = template.shape
+        height, width = template.shape[1], template.shape[0]
         values = []
         locations = []
         for r in ratios:
@@ -162,29 +162,30 @@ class Tracker:
             return None, False
         if label is not None:
             n = len(label)
-        location, found = self.find_similar_point(frame, object_image,
-                                                  levels, sim_thresh)
-        if not found:
-            return None, False
-        location = np.array([location])
-        dists = self.get_spatial_distances(location).flatten()
-        index = np.argmin(dists)
-        name = list(self.registered_ids.keys())[index]
-        return name, True
-
-        # ssims = []
-        # names = []
-        # for name in self.registered_ids:
-        #     if label is None or name[:n] == label:
-        #         x, y, w, h = self.registered_ids[name]
-        #         x_min, x_max = int(x - w / 2), int(x + w / 2)
-        #         y_min, y_max = int(y - h / 2), int(y + h / 2)
-        #         ssim = self.compute_ssim(frame, object_image, [
-        #             x_min, y_min, x_max, y_max])
-        #         ssims.append(ssim)
-        #         names.append(name)
-        # if len(ssims):
-        #     index = np.argmax(ssims)
-        #     if ssims[index] > ssim_thresh:
-        #         return names[index], True
-        # return None, False
+        # location, found = self.find_similar_point(frame, object_image,
+        #                                           levels, sim_thresh)
+        # if not found:
+        #     return None, False
+        # location = np.array([location])
+        # dists = self.get_spatial_distances(location).flatten()
+        # index = np.argmin(dists)
+        # name = list(self.registered_ids.keys())[index]
+        # return name, True
+        ssims = []
+        names = []
+        for name in self.registered_ids:
+            if label is None or (len(name) > n and name[: n] == label):
+                print('We are computing ssim now!')
+                x, y, w, h = self.registered_ids[name]
+                x_min, x_max = int(x - w / 2), int(x + w / 2)
+                y_min, y_max = int(y - h / 2), int(y + h / 2)
+                ssim = self.compute_ssim(frame, object_image, [
+                    x_min, y_min, x_max, y_max])
+                print('Ssim is: {}, name is: {}'.format(ssims, names))
+                ssims.append(ssim)
+                names.append(name)
+        if len(ssims):
+            index = np.argmax(ssims)
+            if ssims[index] > sim_thresh:
+                return names[index], True
+        return None, False
