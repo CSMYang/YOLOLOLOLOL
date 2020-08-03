@@ -132,6 +132,7 @@ class Detector:
         while cv2.waitKey(1) < 0:
             has_frame, current_frame = video_stream.read()
             if has_frame:
+                start_time = time.perf_counter()
                 predictions = self.get_predictions(current_frame)
                 boxes, names = self.get_boxes(
                     current_frame, predictions, need_result=True, draw=False)
@@ -143,9 +144,8 @@ class Detector:
                                   (int(x + w / 2), int(y + h / 2)), c, 2)
                     cv2.putText(current_frame, label, (x, y - 2),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
-
-                t, _ = self.yolo.getPerfProfile()
-                label = 'Current FPS is: %.2f' % (cv2.getTickFrequency() / t)
+                time_spent = time.perf_counter() - start_time
+                label = 'Current FPS is: %.2f' % (1 / time_spent)
                 cv2.putText(current_frame, label, (0, 15),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
                 cv2.imshow("", current_frame)
