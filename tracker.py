@@ -48,18 +48,16 @@ class Tracker:
         Levels refer to how many extra levels in scale space needs to be
         included.
         """
-        frame_edge = cv2.Canny(frame, 50, 200)
-        template_edge = cv2.Canny(template, 50, 200)
         end_point = 0.25 * levels
         ratios = np.linspace(1 - end_point, end_point + 1, num=2 * levels + 1)
-        width, height = template_edge.shape[1], template_edge.shape[0]
+        height, width = template.shape
         values = []
         locations = []
         for r in ratios:
-            template_edge = cv2.resize(
-                template_edge, (int(width * r), int(height * r)))
+            template = cv2.resize(
+                template, (int(width * r), int(height * r)))
             result = cv2.matchTemplate(
-                frame_edge, template_edge, cv2.TM_CCOEFF_NORMED)
+                frame, template, cv2.TM_CCOEFF_NORMED)
             _, max_val, _, max_loc = cv2.minMaxLoc(result)
             if max_val > sim_thresh:
                 values.append(max_val)
