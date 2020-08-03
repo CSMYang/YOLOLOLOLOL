@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from tracker import Tracker
+import time
 
 
 class Detector:
@@ -153,7 +154,7 @@ class Detector:
                 cv2.waitKey(100)
                 break
 
-    def track_specific_image(self, video_name, object_image, class_name=None, ssim_thresh=0.6):
+    def track_specific_image(self, video_name, object_image, class_name=None, ssim_thresh=0.7):
         """
         This function tracks to find a provided object from the video and track it.
         """
@@ -165,6 +166,7 @@ class Detector:
         while cv2.waitKey(1) < 0:
             has_frame, current_frame = video_stream.read()
             if has_frame:
+                start_time = time.perf_counter()
                 current_frame = cv2.rotate(
                     current_frame, cv2.ROTATE_90_CLOCKWISE)
                 predictions = self.get_predictions(current_frame)
@@ -191,8 +193,8 @@ class Detector:
                     cv2.putText(current_frame, label, (x, y - 2),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
 
-                t, _ = self.yolo.getPerfProfile()
-                label = 'Current FPS is: %.2f' % (cv2.getTickFrequency() / t)
+                time_spent = start_time - time.perf_counter()
+                label = 'Current FPS is: %.2f' % (1 / time_spent)
                 cv2.putText(current_frame, label, (0, 15),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
                 cv2.imshow("", current_frame)
