@@ -335,21 +335,41 @@ if __name__ == "__main__":
     img_path = "data\\source_data\\VOC2007\\JPEGImages\\009956.jpg"
     config_path = "./cfg/yolov1.cfg"
     weight_path = "data\\training_result\\8\\2best\\best_state.pth"
-    img = cv2.imread(img_path)
-    # print(img.shape)
     yolo = YoloNet(config_path)
     yolo.load_state_dict(torch.load(weight_path, map_location=DEVICE))
     yolo.to(DEVICE)
     yolo.eval()
-    # result = detect(yolo, img, class_num)
-    result = detect2(yolo, img, classes)
-    print(result)
-
-    # result = [("car", 0.1, (120, 120), (190, 190))]
-
-    # Draw boxes
-    if len(result) > 0:
-        img_out = draw_boxes(img, result)
-        img_plt_out = cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
-        plt.imshow(img_plt_out)
-        plt.show()
+    video_stream = cv2.VideoCapture('File name here')
+    while cv2.waitKey(1) < 0:
+        has_frame, current_frame = video_stream.read()
+        if has_frame:
+            predictions = detect2(yolo, current_frame, classes)
+            img_out = draw_boxes(current_frame, predictions)
+            # t, _ = self.yolo.getPerfProfile()
+            # label = 'Current FPS is: %.2f' % (
+            #         cv2.getTickFrequency() / t)
+            # cv2.putText(current_frame, label, (0, 15),
+            #             cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+            cv2.imshow("", current_frame)
+        else:
+            print('End of the video reached!')
+            cv2.waitKey(100)
+            break
+    # img = cv2.imread(img_path)
+    # # print(img.shape)
+    # yolo = YoloNet(config_path)
+    # yolo.load_state_dict(torch.load(weight_path, map_location=DEVICE))
+    # yolo.to(DEVICE)
+    # yolo.eval()
+    # # result = detect(yolo, img, class_num)
+    # result = detect2(yolo, img, classes)
+    # print(result)
+    #
+    # # result = [("car", 0.1, (120, 120), (190, 190))]
+    #
+    # # Draw boxes
+    # if len(result) > 0:
+    #     img_out = draw_boxes(img, result)
+    #     img_plt_out = cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
+    #     plt.imshow(img_plt_out)
+    #     plt.show()
