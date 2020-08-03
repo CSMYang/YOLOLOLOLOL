@@ -153,7 +153,7 @@ class Detector:
                 cv2.waitKey(100)
                 break
 
-    def track_specific_image(self, video_name, object_image, class_name=None, ssim_thresh=0.15):
+    def track_specific_image(self, video_name, object_image, class_name=None, ssim_thresh=0.6):
         """
         This function tracks to find a provided object from the video and track it.
         """
