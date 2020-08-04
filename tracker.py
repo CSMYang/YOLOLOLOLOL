@@ -169,7 +169,6 @@ class Tracker:
                     break
             if not check:
                 return None, False
-
         location, found = self.find_similar_point(frame, object_image,
                                                   levels, sim_thresh)
         if not found:
