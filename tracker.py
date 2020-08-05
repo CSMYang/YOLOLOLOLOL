@@ -140,9 +140,10 @@ class Tracker:
                         del self.registered_ids[prev_box_label]
                         del self.disappeared[prev_box_label]
                         del self.colors[prev_box_label]
-                        self.id_nums[prev_box_label[:-2]] -= 1
-                        if prev_box_label[-1] != 'd' and self.id_nums[prev_box_label[:-2]] == 0:
-                            del self.id_nums[prev_box_label[:-2]]
+                        if prev_box_label[: -2] in self.id_nums:
+                            self.id_nums[prev_box_label[:-2]] -= 1
+                            if self.id_nums[prev_box_label[:-2]] == 0:
+                                del self.id_nums[prev_box_label[:-2]]
             else:
                 for index in unused_current_boxes:
                     if names[index] in self.id_nums:
