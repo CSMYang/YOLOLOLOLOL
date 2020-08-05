@@ -140,6 +140,9 @@ class Tracker:
                         del self.registered_ids[prev_box_label]
                         del self.disappeared[prev_box_label]
                         del self.colors[prev_box_label]
+                        self.id_nums[prev_box_label[:-2]] -= 1
+                        if self.id_nums[prev_box_label[:-2]] == 0:
+                            del self.id_nums[prev_box_label[:-2]]
             else:
                 for index in unused_current_boxes:
                     if names[index] in self.id_nums:
@@ -160,15 +163,8 @@ class Tracker:
         """
         if len(self.registered_ids) == 0:
             return None, False
-        if label is not None:
-            n = len(label)
-            check = False
-            for name in self.registered_ids:
-                if name[: n] == label:
-                    check = True
-                    break
-            if not check:
-                return None, False
+        if label is not None and label not in self.id_nums:
+            return None, False
         location, found = self.find_similar_point(frame, object_image,
                                                   levels, sim_thresh)
         if not found:
