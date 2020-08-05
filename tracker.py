@@ -157,7 +157,8 @@ class Tracker:
                     self.colors[label] = np.random.choice(
                         range(256), size=3).tolist()
 
-    def find_matching_object(self, frame, object_image, levels=1, sim_thresh=0.8, label=None):
+    def find_matching_object(self, frame, object_image, levels=1, sim_thresh=0.8, label=None,
+                             method='correlation'):
         """
         This function tries to find the object from a frame of current video.
         """
@@ -165,30 +166,32 @@ class Tracker:
             return None, False
         if label is not None and label not in self.id_nums:
             return None, False
-        location, found = self.find_similar_point(frame, object_image,
-                                                  levels, sim_thresh)
-        if not found:
+        if method == 'correlation':
+            location, found = self.find_similar_point(frame, object_image,
+                                                      levels, sim_thresh)
+            if not found:
+                return None, False
+            location = np.array([location])
+            dists = self.get_spatial_distances(location).flatten()
+            index = np.argmin(dists)
+            name = list(self.registered_ids.keys())[index]
+            return name, True
+        elif method == 'ssim':
+            ssims = []
+            names = []
+            for name in self.registered_ids:
+                if label is None or name[: -2] == label:
+                    print('We are computing ssim now!')
+                    x, y, w, h = self.registered_ids[name]
+                    x_min, x_max = int(x - w / 2), int(x + w / 2)
+                    y_min, y_max = int(y - h / 2), int(y + h / 2)
+                    ssim = self.compute_ssim(frame, object_image, [
+                        x_min, y_min, x_max, y_max])
+                    print('Ssim is: {}, name is: {}'.format(ssims, names))
+                    ssims.append(ssim)
+                    names.append(name)
+            if len(ssims):
+                index = np.argmax(ssims)
+                if ssims[index] > sim_thresh:
+                    return names[index], True
             return None, False
-        location = np.array([location])
-        dists = self.get_spatial_distances(location).flatten()
-        index = np.argmin(dists)
-        name = list(self.registered_ids.keys())[index]
-        return name, True
-        # ssims = []
-        # names = []
-        # for name in self.registered_ids:
-        #     if label is None or (len(name) > n and name[: n] == label):
-        #         print('We are computing ssim now!')
-        #         x, y, w, h = self.registered_ids[name]
-        #         x_min, x_max = int(x - w / 2), int(x + w / 2)
-        #         y_min, y_max = int(y - h / 2), int(y + h / 2)
-        #         ssim = self.compute_ssim(frame, object_image, [
-        #             x_min, y_min, x_max, y_max])
-        #         print('Ssim is: {}, name is: {}'.format(ssims, names))
-        #         ssims.append(ssim)
-        #         names.append(name)
-        # if len(ssims):
-        #     index = np.argmax(ssims)
-        #     if ssims[index] > sim_thresh:
-        #         return names[index], True
-        # return None, False
