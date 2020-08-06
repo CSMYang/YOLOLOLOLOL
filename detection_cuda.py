@@ -4,6 +4,8 @@ Object Detection using the yolo model we implemented.
 import torch
 import torchvision.transforms as transforms
 import numpy as np
+import time
+from tracker import Tracker
 import cv2
 from yolo import YoloNet
 from torch.autograd import Variable
@@ -326,6 +328,106 @@ def draw_boxes(img, boxes, color=(0, 255, 0)):
     return img_out
 
 
+def get_boxes(predictions):
+    boxes = []
+    names = []
+    for box in predictions:
+        label, prob, bc1, bc2 = box
+        w = bc2[0] - bc1[0]
+        h = bc2[1] - bc1[1]
+        x, y = int(bc1[0] + w / 2), int(bc1[1] + h / 2)
+        boxes.append([x, y, w, h])
+        names.append(label)
+    boxes = np.array(boxes)
+    return boxes, names
+
+
+def track_everything(video_name=None, max_disappear=10):
+    """
+    This function tries to track every object appeared in a video file
+    """
+    if video_name is None:
+        video_stream = cv2.VideoCapture(0)
+    else:
+        video_stream = cv2.VideoCapture(video_name)
+    tracker = Tracker(dis_count=max_disappear)
+    while cv2.waitKey(1) < 0:
+        has_frame, current_frame = video_stream.read()
+        if has_frame:
+            start_time = time.perf_counter()
+            predictions = detect2(yolo, current_frame, classes)
+            boxes, names = get_boxes(predictions)
+            tracker.update(boxes, names)
+            for label in tracker.registered_ids:
+                x, y, w, h = tracker.registered_ids[label]
+                c = tracker.colors[label]
+                cv2.rectangle(current_frame, (int(x - w / 2), int(y - h / 2)),
+                              (int(x + w / 2), int(y + h / 2)), c, 2)
+                cv2.putText(current_frame, label, (x, y - 2),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
+            time_spent = time.perf_counter() - start_time
+            label = 'Current FPS is: %.2f' % (1 / time_spent)
+            cv2.putText(current_frame, label, (0, 15),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+            cv2.imshow("", current_frame)
+        else:
+            print('End of the video reached!')
+            cv2.waitKey(100)
+            break
+
+def track_specific_image(video_name, object_image, ssim_thresh=0.7, class_name=None):
+    """
+    This function tracks to find a provided object from the video and track it.
+    """
+    video_stream = cv2.VideoCapture(video_name)
+    tracker = Tracker()
+    found = False
+    Deleted = False
+    object_image = cv2.imread(object_image)
+    if class_name is None:
+        predictions = detect2(yolo, object_image, classes)
+        _, names = get_boxes(predictions)
+        if len(names) != 0:
+            class_name = names[0]
+    while cv2.waitKey(1) < 0:
+        has_frame, current_frame = video_stream.read()
+        if has_frame:
+            start_time = time.perf_counter()
+            current_frame = cv2.rotate(
+                current_frame, cv2.ROTATE_90_CLOCKWISE)
+            predictions = detect2(yolo, current_frame, classes)
+            boxes, names = get_boxes(predictions)
+            tracker.update(boxes, names)
+            if not found:
+                class_name, found = tracker.find_matching_object(
+                    current_frame, object_image, 1, ssim_thresh, class_name)
+            if found and not Deleted:
+                box = tracker.registered_ids[class_name]
+                del tracker.registered_ids[class_name]
+                del tracker.disappeared[class_name]
+                del tracker.colors[class_name]
+                tracker.registered_ids['Target found!'] = box
+                tracker.disappeared['Target found!'] = 0
+                tracker.colors['Target found!'] = [0, 0, 255]
+                Deleted = True
+            for label in tracker.registered_ids:
+                x, y, w, h = tracker.registered_ids[label]
+                c = tracker.colors[label]
+                cv2.rectangle(current_frame, (int(x - w / 2), int(y - h / 2)),
+                              (int(x + w / 2), int(y + h / 2)), c, 2)
+                cv2.putText(current_frame, label, (x, y - 2),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.75, c, 2)
+
+            time_spent = time.perf_counter() - start_time
+            label = 'Current FPS is: %.2f' % (1 / time_spent)
+            cv2.putText(current_frame, label, (0, 15),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+            cv2.imshow("", current_frame)
+        else:
+            print('End of the video reached!')
+            cv2.waitKey(100)
+            break
+
 if __name__ == "__main__":
     # Get classes
     classes = get_classes("./data/processed_data/VOC2007_class_label.txt")
@@ -340,16 +442,19 @@ if __name__ == "__main__":
     yolo.to(DEVICE)
     yolo.eval()
     video_stream = cv2.VideoCapture('File name here')
+    tracking = False
+    track_desired_object = False
+    desired_object = cv2.imread('File name here')
     while cv2.waitKey(1) < 0:
         has_frame, current_frame = video_stream.read()
         if has_frame:
+            start_time = time.perf_counter()
             predictions = detect2(yolo, current_frame, classes)
-            img_out = draw_boxes(current_frame, predictions)
-            # t, _ = self.yolo.getPerfProfile()
-            # label = 'Current FPS is: %.2f' % (
-            #         cv2.getTickFrequency() / t)
-            # cv2.putText(current_frame, label, (0, 15),
-            #             cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+            current_frame = draw_boxes(current_frame, predictions)
+            time_spent = time.perf_counter() - start_time
+            label = 'Current FPS is: %.2f' % (1 / time_spent)
+            cv2.putText(current_frame, label, (0, 15),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
             cv2.imshow("", current_frame)
         else:
             print('End of the video reached!')
@@ -373,3 +478,5 @@ if __name__ == "__main__":
     #     img_plt_out = cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
     #     plt.imshow(img_plt_out)
     #     plt.show()
+    track_everything('File name here')
+    track_specific_image('File name', 'Object name')
