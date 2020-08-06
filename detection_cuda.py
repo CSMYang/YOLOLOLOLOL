@@ -439,8 +439,9 @@ if __name__ == "__main__":
 
     # Detect Object
     img_path = "data\\source_data\\VOC2007\\JPEGImages\\000001.jpg"
+    img_path = "p12.jpg"
     config_path = "./cfg/yolov1.cfg"
-    weight_path = "data\\training_result\\best_state.pth"
+    weight_path = "data\\training_result\\8\\3\\best_state.pth"
     yolo = YoloNet(config_path)
     yolo.load_state_dict(torch.load(weight_path, map_location=DEVICE))
     yolo.to(DEVICE)
@@ -464,23 +465,27 @@ if __name__ == "__main__":
             print('End of the video reached!')
             cv2.waitKey(100)
             break
-    # img = cv2.imread(img_path)
-    # # print(img.shape)
-    # yolo = YoloNet(config_path)
-    # yolo.load_state_dict(torch.load(weight_path, map_location=DEVICE))
-    # yolo.to(DEVICE)
-    # yolo.eval()
-    # # result = detect(yolo, img, class_num)
-    # result = detect2(yolo, img, classes)
-    # print(result)
-    #
-    # # result = [("car", 0.1, (120, 120), (190, 190))]
-    #
-    # # Draw boxes
-    # if len(result) > 0:
-    #     img_out = draw_boxes(img, result)
-    #     img_plt_out = cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
-    #     plt.imshow(img_plt_out)
-    #     plt.show()
+    img = cv2.imread(img_path)
+    # print(img.shape)
+    yolo = YoloNet(config_path)
+    yolo.load_state_dict(torch.load(weight_path, map_location=DEVICE))
+    yolo.to(DEVICE)
+    yolo.eval()
+    # result = detect(yolo, img, class_num)
+    result = detect2(yolo, img, classes)
+    print(result)
+
+    # result = [("car", 0.1, (120, 120), (190, 190))]
+
+    # Draw boxes
+    if len(result) > 0:
+        img_out = draw_boxes(img, result)
+        img_plt_out = cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
+        plt.imshow(img_plt_out)
+        plt.show()
+    else:
+        img_plt_out = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        plt.imshow(img_plt_out)
+        plt.show()
     track_everything('testing.mp4')
     track_specific_image('testing.mp4', "Capture4.PNG")
