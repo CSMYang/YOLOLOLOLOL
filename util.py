@@ -1,5 +1,11 @@
+"""
+The helper functions for our YOLO model.
+"""
+
+
 def get_model_from_config(name):
     """
+    :param name: The file path for the configuation file.
     Get the parameters of each layer of the neural network from the config file based on the given path name.
     """
     module_params = []
