@@ -12,8 +12,8 @@ from torch.autograd import Variable
 import matplotlib.pyplot as plt
 
 # Global variables
-CONFID = 0.1
-PROB = 0.01
+CONFID = 0.03
+PROB = 0.03
 NMS = 0.35
 IMG_WIDTH = 448
 IMG_HEIGHT = 448
@@ -77,7 +77,7 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
 
             for b in range(box_num):
                 confidence = yolo_output[j, i, 5 * b + 4]
-                print(confidence)
+                # print(confidence)
                 if float(score) < prob and confidence != 0:
                     continue
 
@@ -204,7 +204,7 @@ def non_maximum_supression3(labels, confidences, scores, boxes, confidence=CONFI
     print("finish nms")
     if len(indexs) == 0:
         return torch.Tensor(0).cuda(), torch.Tensor(0).cuda(), \
-               torch.Tensor(0, 4).cuda()
+            torch.Tensor(0, 4).cuda()
     # new_labels, new_confidences, new_scores, new_boxes = [], [], [], []
     new_labels, new_scores, new_boxes = [], [], []
 
@@ -220,10 +220,10 @@ def non_maximum_supression3(labels, confidences, scores, boxes, confidence=CONFI
     #     torch.stack(new_scores, 0).reshape((len(new_scores))), \
     #     torch.stack(new_boxes, 0).reshape((len(new_boxes), 4))
     new_labels, new_scores, new_boxes = torch.stack(new_labels, 0).reshape((len(new_labels))), \
-                                        torch.stack(new_scores, 0).reshape((len(new_scores))), \
-                                        torch.stack(new_boxes, 0).reshape((len(new_boxes), 4))
+        torch.stack(new_scores, 0).reshape((len(new_scores))), \
+        torch.stack(new_boxes, 0).reshape((len(new_boxes), 4))
     # print(new_labels, new_confidences, new_scores, new_boxes)
-    return new_labels, new_confidences, new_scores, new_boxes
+    return new_labels, new_scores, new_boxes
 
 
 def detect(yolonet, img, class_num, width=IMG_WIDTH, height=IMG_HEIGHT):
@@ -354,6 +354,8 @@ def track_everything(video_name=None, max_disappear=10):
     while cv2.waitKey(1) < 0:
         has_frame, current_frame = video_stream.read()
         if has_frame:
+            current_frame = cv2.rotate(
+                current_frame, cv2.ROTATE_90_CLOCKWISE)
             start_time = time.perf_counter()
             predictions = detect2(yolo, current_frame, classes)
             boxes, names = get_boxes(predictions)
@@ -374,6 +376,7 @@ def track_everything(video_name=None, max_disappear=10):
             print('End of the video reached!')
             cv2.waitKey(100)
             break
+
 
 def track_specific_image(video_name, object_image, ssim_thresh=0.7, class_name=None):
     """
@@ -428,15 +431,16 @@ def track_specific_image(video_name, object_image, ssim_thresh=0.7, class_name=N
             cv2.waitKey(100)
             break
 
+
 if __name__ == "__main__":
     # Get classes
     classes = get_classes("./data/processed_data/VOC2007_class_label.txt")
     class_num = len(classes)
 
     # Detect Object
-    img_path = "data\\source_data\\VOC2007\\JPEGImages\\009956.jpg"
+    img_path = "data\\source_data\\VOC2007\\JPEGImages\\000001.jpg"
     config_path = "./cfg/yolov1.cfg"
-    weight_path = "data\\training_result\\8\\2best\\best_state.pth"
+    weight_path = "data\\training_result\\best_state.pth"
     yolo = YoloNet(config_path)
     yolo.load_state_dict(torch.load(weight_path, map_location=DEVICE))
     yolo.to(DEVICE)
@@ -478,5 +482,5 @@ if __name__ == "__main__":
     #     img_plt_out = cv2.cvtColor(img_out, cv2.COLOR_BGR2RGB)
     #     plt.imshow(img_plt_out)
     #     plt.show()
-    track_everything('File name here')
-    track_specific_image('File name', 'Object name')
+    track_everything('testing.mp4')
+    track_specific_image('testing.mp4', "Capture4.PNG")
