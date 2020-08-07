@@ -75,18 +75,6 @@ class Tracker:
         This function takes an array of boxes and returns an array of spatial distances
         """
         prev_box_coords = np.array(list(self.registered_ids.values()))
-        # for box in boxes:
-        #     coord = box[:2]
-        #     dist = np.square(prev_box_coords - coord)
-        #     dist = np.sum(dist, axis=1)
-        #     dist = np.sqrt(dist)
-        #     best_index = np.argmin(dist)
-        #     if dist[best_index] < self.dist_thresh:
-        #         matched_box = self.boxes[best_index, :]
-        #         if tuple(matched_box) not in matches:
-        #             matches[tuple(matched_box)] = (box, dist[best_index])
-        #         elif matches[tuple(matched_box)][1] > dist[best_index]:
-        #             matches[tuple(matched_box)] = (box, dist[best_index])
         coords = boxes[:2]
         dist = distance.cdist(prev_box_coords[:, :2], coords[:, :2])
         return dist

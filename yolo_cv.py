@@ -212,7 +212,7 @@ class Detector:
 
 if __name__ == '__main__':
     detector = Detector(cuda=False)
-    detector.detect('Capture.PNG')
-    # detector.detect(None, True, True)
-    # detector.track_specific_image("testing.mp4", "Capture.PNG")
-    # detector.track_everything("testing.mp4")
+    detector.detect('p12.PNG')
+    detector.detect(None, True, True)
+    detector.track_specific_image("testing.mp4", "Capture.PNG")
+    detector.track_everything("testing.mp4")

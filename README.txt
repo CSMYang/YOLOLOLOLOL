@@ -2,7 +2,7 @@ Project: Real-time Object Detection with Tracking Module
 
 Authors: Jiahao Cheng (ID: 1003065737),
          Yi Wai Chow (ID: ),
-         Zhiyuan Yang (ID: )
+         Zhiyuan Yang (ID: 1003045420)
 
 Language version: Python 3.7+
 Required packages: numpy, matplotlib, scipy, sys, cv2 (opencv-python: 4.2.0.34+, opencv-contrib-python: 4.3.0.36+)
@@ -13,7 +13,8 @@ Required images:
 Required videos:
 
 Required weight file:
-
+    yolov3.weights
+    yolov3-tiny.weights
 How to run:
     1. Download the weight file from xxx and save it in ./data/training_result/.
     2. To check results using YOLO-v1 model, run detection_cuda.py directly.
@@ -21,7 +22,11 @@ How to run:
        In order to check different results, choose images from ./example and
        manually set the image path in detection_cuda.py. You could also test more images
        using the PASCAL VOC 2007 image dataset or the dataset using the similar format.
-    3. To check results of tracking, run tracker.py directly.
+    3. To check results of tracking, run yolo_cv.py directly. If you want to try different parameters,
+       you can do it by giving different thresholds to track_everything or track_specific_image.
+       Note that, the tracker implemented in tracker.py is only the backend of the tracking module.
+       It needs manual operations to mount that module on detectors. Currently we have it mounted
+       on yolo_cv.py and detection_cuda.py
 
 Reference:
     1. For the loss.py, we get the idea from Motokimura's yolo_v1_pytorch code. You can check
