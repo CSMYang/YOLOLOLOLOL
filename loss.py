@@ -1,8 +1,10 @@
+"""
+Note: For the loss function, we get idea from
+https://github.com/motokimura/yolo_v1_pytorch/blob/master/loss.py.
+"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
-import numpy as np
 
 
 class LossGetter(nn.Module):
