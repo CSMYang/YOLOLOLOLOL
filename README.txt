@@ -1,24 +1,44 @@
 Project: Real-time Object Detection with Tracking Module
 
 Authors: Jiahao Cheng (ID: 1003065737),
-         Yi Wai Chow (ID: ),
+         Yi Wai Chow (ID: 1004365448),
          Zhiyuan Yang (ID: 1003045420)
+
+Our implemention requires cuda.
 
 Language version: Python 3.7+
 Required packages: numpy, matplotlib, scipy, sys, cv2 (opencv-python: 4.2.0.34+, opencv-contrib-python: 4.3.0.36+)
                    torch, torchvision, skimage
 
 Required images:
+000223.jpg
+000413.jpg
+009757.jpg
+009824.jpg
+009903.jpg
+009957.jpg
+009381.jpg
 
 Required videos:
+testing.mp4
 
 Required weight file:
-    yolov3.weights
-    yolov3-tiny.weights
+
+   for object tracker:
+   yolov3.weights
+   yolov3-tiny.weights
+
+   for own implemented yolo:
+   best_state.pth -> for good result
+   best_state_8-3  -> for bad result
+
+Training required file:
+   download at http://host.robots.ox.ac.uk/pascal/VOC/voc2007/ for VOC 2007 dataset
+
 How to run:
     1. Download the weight file from xxx and save it in ./data/training_result/.
     2. To check results using YOLO-v1 model, run detection_cuda.py directly.
-       For testing, we set CONFID = 0.1, PROD = 0.03, and NMS = 0.35.
+       For testing, we set CONFID = 0.1, PROD = 0.1, and NMS = 0.35.
        In order to check different results, choose images from ./example and
        manually set the image path in detection_cuda.py. You could also test more images
        using the PASCAL VOC 2007 image dataset or the dataset using the similar format.

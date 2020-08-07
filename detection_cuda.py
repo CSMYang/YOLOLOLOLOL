@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 # Global variables
 CONFID = 0.1
-PROB = 0.03
+PROB = 0.1
 NMS = 0.35
 IMG_WIDTH = 448
 IMG_HEIGHT = 448
@@ -85,9 +85,9 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
     # print("finish for loop (get_prediction)")
     if len(labels) == 0:
         return torch.Tensor(0).cuda(), torch.Tensor(0).cuda(), torch.Tensor(0).cuda(), \
-               torch.Tensor(0, 4).cuda()
+            torch.Tensor(0, 4).cuda()
     labels, confidences, scores, boxes = torch.stack(labels, 0), torch.stack(confidences, 0), \
-                                         torch.stack(scores, 0), torch.stack(boxes, 0)
+        torch.stack(scores, 0), torch.stack(boxes, 0)
 
     return labels, confidences, scores, boxes
 
@@ -109,7 +109,7 @@ def non_maximum_suppression(labels, confidences, scores, boxes, confidence=CONFI
     # print("finish nms")
     if len(indexs) == 0:
         return torch.Tensor(0).cuda(), torch.Tensor(0).cuda(), \
-               torch.Tensor(0, 4).cuda()
+            torch.Tensor(0, 4).cuda()
     new_labels, new_scores, new_boxes = [], [], []
 
     for i in indexs:
@@ -119,8 +119,8 @@ def non_maximum_suppression(labels, confidences, scores, boxes, confidence=CONFI
         # print(boxes[i].shape)
 
     new_labels, new_scores, new_boxes = torch.stack(new_labels, 0).reshape((len(new_labels))), \
-                                        torch.stack(new_scores, 0).reshape((len(new_scores))), \
-                                        torch.stack(new_boxes, 0).reshape((len(new_boxes), 4))
+        torch.stack(new_scores, 0).reshape((len(new_scores))), \
+        torch.stack(new_boxes, 0).reshape((len(new_boxes), 4))
     # print(new_labels, new_confidences, new_scores, new_boxes)
     return new_labels, new_scores, new_boxes
 
@@ -155,7 +155,7 @@ def detect(yolonet, img, classes):
         label, prob, box = classes[labels_nms[i]], scores_nms[i], boxes_nms[i]
 
         x1, y1, x2, y2 = width * box[0], height * \
-                         box[1], width * box[2], height * box[3]
+            box[1], width * box[2], height * box[3]
         detect.append((label, prob, (x1, y1), (x2, y2)))
     return detect
 
@@ -296,14 +296,17 @@ if __name__ == "__main__":
     class_num = len(classes)
 
     # Detect Object
-    img_path = "data\\source_data\\VOC2007\\JPEGImages\\000001.jpg"
-    img_path = "p12.jpg"
+    # change the path name to the image for img detection
+    img_path = "data\\source_data\\VOC2007\\JPEGImages\\000223.jpg"
     config_path = "./cfg/yolov1.cfg"
+    # change the weight name to load different weight
     weight_path = "data\\training_result\\8\\3\\best_state.pth"
     yolo = YoloNet(config_path)
     yolo.load_state_dict(torch.load(weight_path, map_location=DEVICE))
     yolo.to(DEVICE)
     yolo.eval()
+    # detection
+
     video_stream = cv2.VideoCapture('File name here')
     tracking = False
     track_desired_object = False
@@ -323,6 +326,7 @@ if __name__ == "__main__":
             print('End of the video reached!')
             cv2.waitKey(100)
             break
+
     img = cv2.imread(img_path)
     # print(img.shape)
     yolo = YoloNet(config_path)
@@ -345,5 +349,6 @@ if __name__ == "__main__":
         img_plt_out = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         plt.imshow(img_plt_out)
         plt.show()
+    # object tracker used on our own implemented yolo
     track_everything('testing.mp4')
     track_specific_image('testing.mp4', "Capture4.PNG")
