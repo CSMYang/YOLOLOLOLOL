@@ -17,6 +17,7 @@ Required weight file:
 How to run:
     1. Download the weight file from xxx and save it in ./data/training_result/.
     2. To check results using YOLO-v1 model, run detection_cuda.py directly.
+       For testing, we set CONFID = 0.1, PROD = 0.03, and NMS = 0.35.
        In order to check different results, choose images from ./example and
        manually set the image path in detection_cuda.py. You could also test more images
        using the PASCAL VOC 2007 image dataset or the dataset using the similar format.
