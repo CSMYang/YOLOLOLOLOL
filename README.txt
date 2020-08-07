@@ -36,17 +36,24 @@ Training required file:
    download at http://host.robots.ox.ac.uk/pascal/VOC/voc2007/ for VOC 2007 dataset
 
 How to run:
-    1. Download the weight file from xxx and save it in ./data/training_result/.
+    1. Download the self trained weight file from xxx and save it in ./data/training_result/.
+
     2. To check results using YOLO-v1 model, run detection_cuda.py directly.
        For testing, we set CONFID = 0.1, PROD = 0.1, and NMS = 0.35.
        In order to check different results, choose images from ./example and
        manually set the image path in detection_cuda.py. You could also test more images
        using the PASCAL VOC 2007 image dataset or the dataset using the similar format.
+       
     3. To check results of tracking, run yolo_cv.py directly. If you want to try different parameters,
        you can do it by giving different thresholds to track_everything or track_specific_image.
        Note that, the tracker implemented in tracker.py is only the backend of the tracking module.
        It needs manual operations to mount that module on detectors. Currently we have it mounted
        on yolo_cv.py and detection_cuda.py
+
+    4. After downloading the dataset, place it in the main directory 
+       and follow the comment in the main section of the training code and should be able to run
+       if it fails at torch.save, please modified the path in the argument. 
+       or create the folder necessary for it to run.
 
 Reference:
     1. For the loss.py, we get the idea from Motokimura's yolo_v1_pytorch code. You can check

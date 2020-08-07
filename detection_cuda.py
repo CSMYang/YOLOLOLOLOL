@@ -300,7 +300,7 @@ if __name__ == "__main__":
     img_path = "data\\source_data\\VOC2007\\JPEGImages\\000223.jpg"
     config_path = "./cfg/yolov1.cfg"
     # change the weight name to load different weight
-    weight_path = "data\\training_result\\8\\3\\best_state.pth"
+    weight_path = "training_result\\best_state.pth"
     yolo = YoloNet(config_path)
     yolo.load_state_dict(torch.load(weight_path, map_location=DEVICE))
     yolo.to(DEVICE)

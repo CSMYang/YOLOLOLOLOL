@@ -10,6 +10,8 @@ import math
 from datetime import datetime
 import xml.etree.ElementTree as ET
 from torch.utils.data import Dataset
+import cv2
+import torchvision.transforms as transforms
 
 
 class FormatedDataSet(Dataset):
@@ -99,7 +101,7 @@ class FormatedDataSet(Dataset):
             h = box_entry[3]
             xmin = box_entry[4]
             ymin = box_entry[5]
-            label = label[index]
+            label1 = label[index]
             # now we need to determine which box in the grid this center belongs too
             x_center = int(x_center*448)
             y_center = int(y_center*448)
@@ -119,5 +121,5 @@ class FormatedDataSet(Dataset):
                 result[i, j, k+3] = h_center/448
                 result[i, j, k+4] = 1
 
-                result[i, j, 5*self.number_bounding_box + label] = 1
-            return result
+                result[i, j, 5*self.number_bounding_box + label1] = 1
+        return result

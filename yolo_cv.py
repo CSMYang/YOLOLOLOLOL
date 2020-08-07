@@ -132,6 +132,8 @@ class Detector:
         while cv2.waitKey(1) < 0:
             has_frame, current_frame = video_stream.read()
             if has_frame:
+                current_frame = cv2.rotate(
+                    current_frame, cv2.ROTATE_90_CLOCKWISE)
                 start_time = time.perf_counter()
                 predictions = self.get_predictions(current_frame)
                 boxes, names = self.get_boxes(
@@ -181,7 +183,7 @@ class Detector:
                 tracker.update(boxes, names)
                 if not found:
                     class_name, found = tracker.find_matching_object(
-                        current_frame, object_image, 1, ssim_thresh, class_name)
+                        current_frame, object_image, 1, ssim_thresh, class_name, "ssim")
                 if found and not Deleted:
                     box = tracker.registered_ids[class_name]
                     del tracker.registered_ids[class_name]
@@ -211,8 +213,7 @@ class Detector:
 
 
 if __name__ == '__main__':
-    detector = Detector(cuda=False)
-    detector.detect('p12.PNG')
-    detector.detect(None, True, True)
-    detector.track_specific_image("testing.mp4", "Capture.PNG")
+    detector = Detector(cuda=True)
+    detector.detect('p12.jpg')
+    detector.track_specific_image("testing.mp4", "Capture4.PNG")
     detector.track_everything("testing.mp4")
