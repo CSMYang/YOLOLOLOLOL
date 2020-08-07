@@ -92,7 +92,7 @@ def update_learning_rate(optimizer, epoch):
 if __name__ == "__main__":
     # reason why its 2 iteration is becasue you can leave it on overnight and it will spend approximately 8 hours
     # first argument takes in the folder for the annotations, 2nd argument takes in destination folder, 3rd argument takes in database name
-    source_label("data\source_data\VOC2007\Annotations",
+    source_label("data\VOC2007\Annotations",
                  "data\processed_data", "VOC2007")
     # first argument takes in the output of source label, 2nd argument takes in destination folder, 3rd argument takes in database name
     shuffle_and_split("data\processed_data\VOC2007_label.txt",
@@ -118,12 +118,12 @@ if __name__ == "__main__":
     optimizer = torch.optim.SGD(
         filter(lambda p: p.requires_grad, yolo.parameters()), lr=init_lr, momentum=momentum, weight_decay=weight_decay)
 
-    Train_data_set = FormatedDataSet(True, "data\source_data\VOC2007\JPEGImages",
+    Train_data_set = FormatedDataSet(True, "data\VOC2007\JPEGImages",
                                      "data\processed_data\VOC2007_training_label.txt", S, B, C)
     Train_loader = DataLoader(
         Train_data_set, batch_size=batch_size, shuffle=True, num_workers=0)
 
-    Validation_data_set = FormatedDataSet(True, "data\source_data\VOC2007\JPEGImages",
+    Validation_data_set = FormatedDataSet(True, "data\VOC2007\JPEGImages",
                                           "data\processed_data\VOC2007_validation_label.txt", S, B, C)
     Validation_loader = DataLoader(
         Validation_data_set, batch_size=batch_size, shuffle=True, num_workers=0)
@@ -201,13 +201,13 @@ if __name__ == "__main__":
         # please modified the path if it fails to run for torch.save
 
         torch.save(yolo.state_dict(),
-                   "training_result\\latest_state.pth")
+                   "latest_state.pth")
         if best_loss == 0 or best_loss >= total_val_loss:
             best_loss = total_val_loss
             best_accuray_percentage = this_iter_precentage
             best_iteration = iteration
             torch.save(yolo.state_dict(),
-                       "training_result\\best_state.pth")
+                       "best_state.pth")
             print("replaced at {}".format(iteration))
 
         print("iteration {} ended".format(iteration),

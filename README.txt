@@ -5,6 +5,7 @@ Authors: Jiahao Cheng (ID: 1003065737),
          Zhiyuan Yang (ID: 1003045420)
 
 Our implemention requires cuda.
+Open the project under the main directory YOLOLOLOLOL, or it might ouput pathing error
 
 Language version: Python 3.7+
 Required packages: numpy, matplotlib, scipy, sys, cv2 (opencv-python: 4.2.0.34+, opencv-contrib-python: 4.3.0.36+)
@@ -33,10 +34,14 @@ Required weight file:
    best_state_8-3  -> for bad result
 
 Training required file:
-   download at http://host.robots.ox.ac.uk/pascal/VOC/voc2007/ for VOC 2007 dataset
+   download at http://host.robots.ox.ac.uk/pascal/VOC/voc2007/ for VOC 2007 dataset and put the all the folder inside VOC2007 folder under data directory
 
 How to run:
-    1. Download the self trained weight file from xxx and save it in ./data/training_result/.
+    1. Download the yolov3 weight and yolov3 tiny.weight file from 
+       https://pjreddie.com/media/files/yolov3.weights
+       https://pjreddie.com/media/files/yolov3-tiny.weights
+       and save it in the main directory
+       these 2 weight are used in yolo_cv.py
 
     2. To check results using YOLO-v1 model, run detection_cuda.py directly.
        For testing, we set CONFID = 0.1, PROD = 0.1, and NMS = 0.35.

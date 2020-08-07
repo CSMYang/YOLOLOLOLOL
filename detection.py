@@ -81,7 +81,8 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
 
                 box = yolo_output[j, i, 5 * b: 5 * b + 4]
                 # print(box)
-                xy_coord = box[:2] / float(side) + torch.Tensor([i, j], device=DEVICE) / float(side)
+                xy_coord = box[:2] / float(side) + \
+                    torch.Tensor([i, j], device=DEVICE) / float(side)
                 box_coords = torch.Tensor(4, device=DEVICE)
                 box_coords[:2] = xy_coord - 0.5 * box[2:]
                 box_coords[2:] = xy_coord + 0.5 * box[2:]
@@ -101,9 +102,9 @@ def get_prediction_from_yolo(yolo_output, side, box_num, prob=PROB):
     print(labels, boxes)
     if len(labels) == 0:
         return torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), \
-               torch.Tensor(0, 4, device=DEVICE)
+            torch.Tensor(0, 4, device=DEVICE)
     labels, confidences, scores, boxes = torch.stack(labels, 0), torch.stack(confidences, 0), \
-                                         torch.stack(scores, 0), torch.stack(boxes, 0)
+        torch.stack(scores, 0), torch.stack(boxes, 0)
 
     return labels, confidences, scores, boxes
 
@@ -157,7 +158,8 @@ def non_maximum_supression2(labels, confidences, scores, boxes, confidence=CONFI
     sorted_boxes, boxes_indices = torch.sort(scores, 0, descending=True)
     result = []
     while boxes_indices.numel() > 0:
-        i = boxes_indices.item() if (boxes_indices.numel() == 1) else boxes_indices[0].item()
+        i = boxes_indices.item() if (boxes_indices.numel() ==
+                                     1) else boxes_indices[0].item()
         # print(x1[i].item())
         result.append(i)
         if boxes_indices.numel() == 1:
@@ -195,8 +197,9 @@ def non_maximum_supression3(labels, confidences, scores, boxes, confidence=CONFI
     """
     if labels.shape[0] == 0:
         return torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), \
-               torch.Tensor(0, 4, device=DEVICE)
-    indexs = cv2.dnn.NMSBoxes(boxes.tolist(), confidences.tolist(), confidence, nms)
+            torch.Tensor(0, 4, device=DEVICE)
+    indexs = cv2.dnn.NMSBoxes(
+        boxes.tolist(), confidences.tolist(), confidence, nms)
     print("finish nms")
     new_labels, new_confidences, new_scores, new_boxes = [], [], [], []
 
@@ -208,9 +211,9 @@ def non_maximum_supression3(labels, confidences, scores, boxes, confidence=CONFI
         # print(boxes[i].shape)
 
     new_labels, new_confidences, new_scores, new_boxes = torch.stack(new_labels, 0).reshape((len(new_labels))), \
-                                                         torch.stack(new_confidences, 0).reshape((len(new_confidences))), \
-                                                         torch.stack(new_scores, 0).reshape((len(new_scores))), \
-                                                         torch.stack(new_boxes, 0).reshape((len(new_boxes), 4))
+        torch.stack(new_confidences, 0).reshape((len(new_confidences))), \
+        torch.stack(new_scores, 0).reshape((len(new_scores))), \
+        torch.stack(new_boxes, 0).reshape((len(new_boxes), 4))
     # print(new_labels, new_confidences, new_scores, new_boxes)
     return new_labels, new_confidences, new_scores, new_boxes
 
@@ -228,16 +231,18 @@ def detect(yolonet, img, class_num, width=IMG_WIDTH, height=IMG_HEIGHT):
     img_input = preprocess_img(img)
     box_num = int(yolonet.detection_param['num'])
     side = int(yolonet.detection_param['side'])
-    labels, confidences, scores, boxes = get_prediction_from_yolo(yolonet(img_input).squeeze(0), side, box_num)
+    labels, confidences, scores, boxes = get_prediction_from_yolo(
+        yolonet(img_input).squeeze(0), side, box_num)
     # labels, confidences, scores, boxes = get_prediction_from_yolo(predictions, side, box_num)
     # NMS
     labels_nms, probs_nms, boxes_nms = torch.Tensor(0, device=DEVICE), torch.Tensor(0, device=DEVICE), \
-                                       torch.Tensor(0, 4, device=DEVICE)
+        torch.Tensor(0, 4, device=DEVICE)
     for i in range(class_num):
         indices = (labels_nms == i)
         if torch.sum(indices) == 0:
             continue
-        sublables, subconf, subscores, subboxes = labels[indices], confidences[indices], scores[indices], boxes[indices]
+        sublables, subconf, subscores, subboxes = labels[
+            indices], confidences[indices], scores[indices], boxes[indices]
         filter_indices = non_maximum_supression(subscores, subboxes)
         labels_nms = torch.cat((labels_nms, sublables[filter_indices]))
         boxes_nms = torch.cat((boxes_nms, subboxes[filter_indices]))
@@ -249,7 +254,8 @@ def detect(yolonet, img, class_num, width=IMG_WIDTH, height=IMG_HEIGHT):
     for i in range(labels_nms.size(0)):
         label, prob, box = labels_nms[i], probs_nms[i], boxes_nms[i]
 
-        x1, y1, x2, y2 = width * box[0], height * box[1], width * box[2], height * box[3]
+        x1, y1, x2, y2 = width * box[0], height * \
+            box[1], width * box[2], height * box[3]
         detect.append((label, prob, (x1, y1), (x2, y2)))
     return detect
 
@@ -271,17 +277,21 @@ def detect2(yolonet, img, classes):
     with torch.no_grad():
         yolo_output = yolonet(img_input)
     yolo_output = yolo_output.cpu().data.squeeze(0)
-    labels, confidences, scores, boxes = get_prediction_from_yolo(yolo_output, side, box_num)
+    labels, confidences, scores, boxes = get_prediction_from_yolo(
+        yolo_output, side, box_num)
     # labels, confidences, scores, boxes = get_prediction_from_yolo(predictions, side, box_num)
     # NMS
-    labels_nms, confidences_nms, scores_nms, boxes_nms = non_maximum_supression3(labels, confidences, scores, boxes)
+    labels_nms, confidences_nms, scores_nms, boxes_nms = non_maximum_supression3(
+        labels, confidences, scores, boxes)
 
     # Reformat the result as a list of tuple.
     detect = []
     for i in range(labels_nms.size(0)):
-        label, prob, box = classes[labels_nms[i]], confidences_nms[i] * scores_nms[i], boxes_nms[i]
+        label, prob, box = classes[labels_nms[i]
+                                   ], confidences_nms[i] * scores_nms[i], boxes_nms[i]
 
-        x1, y1, x2, y2 = width * box[0], height * box[1], width * box[2], height * box[3]
+        x1, y1, x2, y2 = width * box[0], height * \
+            box[1], width * box[2], height * box[3]
         detect.append((label, prob, (x1, y1), (x2, y2)))
     return detect
 
@@ -316,7 +326,7 @@ if __name__ == "__main__":
     # Detect Object
     img_path = "./000844.jpg"
     config_path = "./cfg/yolov1.cfg"
-    weight_path = "data\\training_result\\best_state.pth"
+    weight_path = "best_state.pth"
     img = cv2.imread(img_path)
     # print(img.shape)
     yolo = YoloNet(config_path)
