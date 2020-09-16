@@ -4,6 +4,8 @@ Authors: Jiahao Cheng
          Yi Wai Chow 
          Zhiyuan Yang 
 
+For detailed explanation, please see our report: https://github.com/CSMYang/YOLOLOLOLOL/blob/master/Report.pdf
+
 Our implemention requires cuda.
 Open the project under the main directory YOLOLOLOLOL, or it might ouput pathing error
 
