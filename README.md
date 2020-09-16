@@ -34,7 +34,8 @@ Required weight file:
    for own implemented yolo:
    best_state.pth -> for good result
    best_state_8-3  -> for bad result
-
+   due to storage limitation, the weight files are not uploaded to github, please train your own weight file
+   
 Training required file:
    download at http://host.robots.ox.ac.uk/pascal/VOC/voc2007/ for VOC 2007 dataset and put the all the folder inside VOC2007 folder under data directory
 
