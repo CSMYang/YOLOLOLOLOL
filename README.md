@@ -4,9 +4,7 @@ Authors: Jiahao Cheng
          Yi Wai Chow 
          Zhiyuan Yang 
 
-<figure class="video_container">
-  <iframe src="https://drive.google.com/file/d/1KYmPma2RJId9PXDpTokAByLrgoRweN_b/view?usp=sharing" frameborder="0" allowfullscreen="true"> </iframe>
-</figure>
+![Track without Searching](everything-min.gif)
 
 
 For detailed explanation, please see our [report](https://github.com/CSMYang/YOLOLOLOLOL/blob/master/Report.pdf).
