@@ -40,6 +40,7 @@ Training required file:
    download at http://host.robots.ox.ac.uk/pascal/VOC/voc2007/ for VOC 2007 dataset and put the all the folder inside VOC2007 folder under data directory
 
 How to run:
+
     1. Download the yolov3 weight and yolov3 tiny.weight file from 
        https://pjreddie.com/media/files/yolov3.weights
        https://pjreddie.com/media/files/yolov3-tiny.weights
