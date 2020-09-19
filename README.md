@@ -4,6 +4,8 @@ Authors: Jiahao Cheng
          Yi Wai Chow 
          Zhiyuan Yang 
 
+![Alt Text](https://drive.google.com/file/d/1bBKbLpMpa2J_wz681Kuy5JbOmnll0Smg/view?usp=sharing)
+
 For detailed explanation, please see our report: https://github.com/CSMYang/YOLOLOLOLOL/blob/master/Report.pdf
 
 Our implemention requires cuda.
