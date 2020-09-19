@@ -70,6 +70,9 @@ How to run:
 Reference:
 
 For the loss.py, we get the idea from Motokimura's yolo_v1_pytorch code. You can check it [here](https://github.com/motokimura/yolo_v1_pytorch/blob/master/loss.py).
+
 For the detect part in detection_cuda.py, we get the idea from Motokimura's yolo_v1_pytorch code. You can check it [here](https://github.com/motokimura/yolo_v1_pytorch/blob/master/detect.py).
+
 For the training process in training.py, we get the idea from Motokimura's yolo_v1_pytorch code. You can check it [here](https://github.com/motokimura/yolo_v1_pytorch/blob/master/train_yolo.py).
+
 For the loading YOLO model code in yolo.py, we get the idea from Chaurasia's yolo_v3 code. You can check it [here](https://github.com/AyushExel/Detectx-Yolo-V3/blob/master/DNModel.py).
